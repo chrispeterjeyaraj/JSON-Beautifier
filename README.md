@@ -1,11 +1,8 @@
-![JSON Beautifier](https://github.com/arnav-kr/json-formatter/blob/main/images/banners/promo_tile_marquee.png?raw=true)
-
 # JSON Beautifier
 
-### A Chrome Extensions for formating and prettifying JSON automatically in the browser
+### A Chrome Extension for formating and prettifying JSON automatically in the browser
 
 ## Change Log
-* ⚒️ **Bug Fix:** UI Breaks in some NPM webpages
 * ⚡ `Formatted Raw` and `Raw` are now Separate Modes
 * ⚡ Now Extension Settings and Preferences can be managed Directly from `Extension Settings` and `Extension Options`
 * ⚡ More Consistent Styling over Pages

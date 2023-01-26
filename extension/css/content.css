@@ -1,0 +1,343 @@
+.JB_json-container {
+  font-family: Consolas, Monaco, "Andale Mono", "Ubuntu Mono", monospace;
+  font-size: 13px;
+  background-color: #fff;
+  color: #808080;
+  box-sizing: border-box;
+  padding: 4px;
+  overflow: auto;
+  width: 100%;
+  height: 100%;
+}
+
+.JB_json-container .line {
+  margin: 4px 0;
+  display: flex;
+  justify-content: flex-start;
+}
+
+.JB_json-container .caret-icon {
+  width: 18px;
+  text-align: center;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.JB_json-container .empty-icon {
+  width: 18px;
+}
+
+.JB_json-container .json-type {
+  margin-right: 4px;
+  margin-left: 4px;
+}
+
+.JB_json-container .json-key {
+  color: #444;
+  margin-right: 4px;
+  margin-left: 4px;
+}
+
+.JB_json-container .json-index {
+  margin-right: 4px;
+  margin-left: 4px;
+}
+
+.JB_json-container .json-value {
+  margin-left: 8px;
+}
+
+.JB_json-container .json-number {
+  color: #f9ae58;
+}
+
+.JB_json-container .json-boolean {
+  color: #ec5f66;
+}
+
+.JB_json-container .json-string {
+  color: #86b25c;
+}
+
+.JB_json-container .json-size {
+  margin-right: 4px;
+  margin-left: 4px;
+}
+
+.JB_json-container .hide {
+  display: none;
+}
+
+.JB_json-container .codicon-chevron-down {
+  width: 18px;
+  height: 18px;
+  background: #808080;
+  -webkit-clip-path: url(#chevron-down);
+  clip-path: url(#chevron-down);
+}
+
+.JB_json-container .codicon-chevron-right {
+  width: 18px;
+  height: 18px;
+  background: #808080;
+  -webkit-clip-path: url(#chevron-right);
+  clip-path: url(#chevron-right);
+}
+
+body.JB_.JB_dark {
+  background-color: #1e1e1e;
+}
+
+.JB_json-container.JB_dark {
+  font-family: Consolas, Monaco, "Andale Mono", "Ubuntu Mono", monospace;
+  background-color: #1e1e1e;
+  color: #d4d4d4;
+  box-sizing: border-box;
+}
+
+.JB_json-container.JB_dark .line {
+  margin: 4px 0;
+  display: flex;
+  justify-content: flex-start;
+}
+
+.JB_json-container.JB_dark .caret-icon {
+  width: 18px;
+  text-align: center;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.JB_json-container.JB_dark .empty-icon {
+  width: 18px;
+}
+
+.JB_json-container.JB_dark .json-type {
+  margin-right: 4px;
+  margin-left: 4px;
+}
+
+.JB_json-container.JB_dark .json-key {
+  color: #9cdcfe;
+  margin-right: 4px;
+  margin-left: 4px;
+}
+
+.JB_json-container.JB_dark .json-index {
+  margin-right: 4px;
+  margin-left: 4px;
+}
+
+.JB_json-container.JB_dark .json-value {
+  margin-left: 8px;
+}
+
+.JB_json-container.JB_dark .json-number {
+  color: #b5cea8;
+}
+
+.JB_json-container.JB_dark .json-boolean {
+  color: #569cd6;
+}
+
+.JB_json-container.JB_dark .json-string {
+  color: #ce9178;
+}
+
+.JB_json-container.JB_dark .json-size {
+  margin-right: 4px;
+  margin-left: 4px;
+}
+
+.JB_json-container.JB_dark .hide {
+  display: none;
+}
+
+.JB_json-container.JB_dark .codicon-chevron-down {
+  width: 18px;
+  height: 18px;
+  background: #d4d4d4;
+  -webkit-clip-path: url(#chevron-down);
+  clip-path: url(#chevron-down);
+}
+
+.JB_json-container.JB_dark .codicon-chevron-right {
+  width: 18px;
+  height: 18px;
+  background: #d4d4d4;
+  -webkit-clip-path: url(#chevron-right);
+  clip-path: url(#chevron-right);
+}
+
+/* body.JB_ {
+  margin: 0;
+} */
+
+.JB_raw {
+  padding: 8px;
+  overflow: auto;
+  width: auto;
+  box-sizing: border-box;
+  margin: 0;
+  width: 100%;
+  height: 100%;
+  position: fixed;
+  top: 0;
+  left: 0;
+  bottom: 0;
+  right: 0;
+}
+
+.JB_parsed {
+  width: 100%;
+  height: 100%;
+  position: fixed;
+  top: 0;
+  left: 0;
+  bottom: 0;
+  right: 0;
+}
+
+.JB_raw.JB_dark {
+  background-color: rgb(30, 30, 30);
+  color: #d4d4d4;
+}
+
+.JB_button-wrapper {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.JB_button-wrapper > button:first-child {
+  border-radius: 4px 0 0 4px;
+  left: 1px;
+}
+
+.JB_button-wrapper > button:nth-child(2) {
+  border-radius: 0;
+  border-width: 0 1px;
+  border-style: solid;
+  border-color: #dadce0;
+  margin: 0;
+}
+
+.JB_button-wrapper > button:last-child {
+  border-radius: 0 4px 4px 0;
+}
+
+.JB_actions {
+  position: absolute;
+  right: 24px;
+  top: 16px;
+  display: inline-flex;
+  z-index: 10;
+}
+
+.JB_search {
+  position: absolute;
+  right: 24px;
+  top:70px;
+  display: inline-flex;
+  z-index: 10;
+}
+
+.JB_cr-button {
+  text-size-adjust: 100%;
+  visibility: visible;
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  box-sizing: border-box;
+  min-width: 64px;
+  border: none;
+  outline: none;
+  line-height: inherit;
+  -webkit-user-select: none;
+  -webkit-appearance: none;
+  overflow: visible;
+  vertical-align: middle;
+  -webkit-font-smoothing: antialiased;
+  text-decoration: none;
+  -webkit-tap-highlight-color: rgba(0, 0, 0, 0);
+  will-change: transform, opacity;
+  height: 36px;
+  border-radius: 4px;
+  font-family: "Google Sans", Roboto, Arial, sans-serif;
+  font-size: 0.875rem;
+  letter-spacing: 0.0107142857em;
+  font-weight: 500;
+  text-transform: none;
+  transition: 280ms cubic-bezier(0.4, 0, 0.2, 1);
+  box-shadow: none;
+  padding: 0 12px 0 12px;
+  background-color: #f1f3f4;
+  color: rgb(30, 30, 30);
+  cursor: pointer;
+}
+
+.JB_toggle_dark {
+  padding: 0;
+  border-radius: 50%;
+  min-width: 36px;
+  width: 36px;
+  height: 36px;
+  margin-right: 8px;
+}
+
+.JB_toggle_toolbar {
+  padding: 0;
+  border-radius: 50%;
+  min-width: 36px;
+  width: 36px;
+  height: 36px;
+  margin-left: 8px;
+  opacity: 0.7;
+  z-index: 3;
+}
+
+.JB_toggle_toolbar:hover {
+  opacity: 1;
+}
+
+.JB_toggle_dark:hover img {
+  filter: invert(20%);
+}
+
+.JB_cr-button:hover {
+  background-color: #e5e7e8;
+}
+
+.JB_cr-button:active {
+  background-color: #dadce0;
+}
+
+.JB_cr-button.active {
+  background-color: #1a73e8 !important;
+  color: #fff !important;
+}
+
+.JB_linkify-link {
+  text-decoration: none;
+  color: inherit;
+}
+
+.JB_linkify-link:hover {
+  text-decoration: underline;
+}
+
+.JB_json_toolbar {
+  display: none;
+  transition: opacity 0.2s ease;
+}
+
+.JB_search_textbox {
+  width: 300px;
+  height: 25px;
+  background-color: #eeeeee;
+}

@@ -50,32 +50,58 @@ function formatJSON(str) {
   }, 100);
 }
 
+function deepClone(source) {
+  const temp = [];
+  if (source) {
+    return JSON.parse(JSON.stringify(source, (key, value) => {
+      if (typeof value === 'object' && value !== null) {
+        if (temp.indexOf(value) !== -1) {
+          return undefined;
+        }
+        temp.push(value);
+      }
+      return value;
+    }));
+  }
+  return {};
+}
+
+const deepFilter = (obj, searchText) => {
+  //iterate the object
+  for (let key in obj) {
+    const val = obj[key];
+    if (typeof val === "object") {
+      console.log(key)
+      if (key != searchText) {
+        deepFilter(val, searchText);
+      }
+    }
+    else {
+      if (key !== searchText && obj[key] !== searchText) {
+        delete obj[key];
+      }
+    }
+    if (JSON.stringify(val) === "{}") {
+      delete obj[key];
+    }
+  }
+  return obj;
+};
+
 // Search through the JSON recursively to find out matched items at 1 levels
 // Need to work on nested and same levels
 function searchJSON(searchText) {
-    var result = [];
-    function recursiveSearch(obj) {
-        if (!obj || typeof obj !== 'object') {
-            return;
-        }
-      Object.keys(obj).forEach(function (k) {
-          if (obj[k] === searchText || k === searchText){
-            result.push({ [k] : obj[k] });
-          }
-          recursiveSearch(obj[k]);
-        });
-    }
-    if (searchText !== "") {
-      recursiveSearch(orgJSON);
-    }
-  if (result[0]) {
-    formatJSON(JSON.stringify(result[0]));
+  const filterJSON = cloneDeep(orgJSON);
+  const result = deepFilter(filterJSON, searchText)
+  if (Object.entries(result).length > 0) {
+    // console.log(result);
+    formatJSON(JSON.stringify(result));
   } else if (searchText == "") {
     formatJSON(JSON.stringify(orgJSON));
   } else {
     formatJSON(JSON.stringify({
       errorCode: "No Match",
-      error: "No Match for the key/value entered for search",
+      error: "No match for the key/value entered for search",
       searchText: searchText
     }))
   }
@@ -623,7 +649,6 @@ function prepareBody() {
   });
 }
 function setupFormatter(str) {
-  console.log(str)
   var code;
   if (typeof (str) == "object") {
     code = JSON.stringify(str);

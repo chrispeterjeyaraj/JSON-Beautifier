@@ -66,6 +66,7 @@ function deepClone(source) {
   return {};
 }
 
+// ##BUG## needs improvement. Currently if the value of a key is array. its adding it to the filter
 const deepFilter = (obj, searchText) => {
   //iterate the object
   for (let key in obj) {
@@ -77,7 +78,7 @@ const deepFilter = (obj, searchText) => {
       }
     }
     else {
-      if (key !== searchText && obj[key] !== searchText) {
+      if (!key.includes(searchText) && !obj[key].includes(searchText)) {
         delete obj[key];
       }
     }
@@ -91,7 +92,7 @@ const deepFilter = (obj, searchText) => {
 // Search through the JSON recursively to find out matched items at 1 levels
 // Need to work on nested and same levels
 function searchJSON(searchText) {
-  const filterJSON = cloneDeep(orgJSON);
+  const filterJSON = deepClone(orgJSON);
   const result = deepFilter(filterJSON, searchText)
   if (Object.entries(result).length > 0) {
     // console.log(result);

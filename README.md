@@ -2,6 +2,8 @@
 
 ### A Chrome Extension for formating and prettifying JSON automatically in the browser
 
+### Workflows [![Deno](https://github.com/chrispeterjeyaraj/json-beautifier/actions/workflows/deno.yml/badge.svg)](https://github.com/chrispeterjeyaraj/json-beautifier/actions/workflows/deno.yml)
+
 ## Change Log
 * ⚡ `Formatted Raw` and `Raw` are now Separate Modes
 * ⚡ Now Extension Settings and Preferences can be managed Directly from `Extension Settings` and `Extension Options`

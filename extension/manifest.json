@@ -6,7 +6,7 @@
   "manifest_version": 3,
   "description": "A JSON Beautifier with syntax highlighting, themes, search and many more features.",
   "author": "Christopher Peterjeyaraj",
-  "homepage_url": "https://github.com/arnav-kr/json-formatter",
+  "homepage_url": "https://github.com/chrispeterjeyaraj/json-beautifier",
   "minimum_chrome_version": "88",
   "offline_enabled": true,
   "options_ui": {

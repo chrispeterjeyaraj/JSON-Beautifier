@@ -66,45 +66,52 @@ function deepClone(source) {
   return {};
 }
 
-// ##BUG## needs improvement. Currently if the value of a key is array. its adding it to the filter
+// ##BUG## Need to add ability to search for data inside array items. Only array keys are supported now.
 const deepFilter = (obj, searchText) => {
   //iterate the object
   for (let key in obj) {
     const val = obj[key];
     if (typeof val === "object") {
-      console.log(key)
-      if (key != searchText) {
-        deepFilter(val, searchText);
+      if (!searchText.includes(key)) {
+        if (Array.isArray(val)) {
+          if (!searchText.includes(val)) {
+            delete obj[key]
+          }
+        } else {
+          deepFilter(val, searchText);
+        }
       }
     }
     else {
-      if (!key.includes(searchText) && !obj[key].includes(searchText)) {
-        delete obj[key];
+      const filteredSearch = searchText.filter((item) => key.toString().includes(item) || obj[key].toString().includes(item));
+      if (filteredSearch.length === 0) {
+          delete obj[key]
       }
     }
-    if (JSON.stringify(val) === "{}") {
+    if (JSON.stringify(val) === "{}" || JSON.stringify(val) === "[]") {
       delete obj[key];
     }
   }
   return obj;
 };
 
-// Search through the JSON recursively to find out matched items at 1 levels
-// Need to work on nested and same levels
+// Search through the JSON recursively to find out matched items
 function searchJSON(searchText) {
-  const filterJSON = deepClone(orgJSON);
-  const result = deepFilter(filterJSON, searchText)
-  if (Object.entries(result).length > 0) {
-    // console.log(result);
-    formatJSON(JSON.stringify(result));
-  } else if (searchText == "") {
+  if (searchText == "") {
     formatJSON(JSON.stringify(orgJSON));
   } else {
-    formatJSON(JSON.stringify({
-      errorCode: "No Match",
-      error: "No match for the key/value entered for search",
-      searchText: searchText
-    }))
+    const searchKeys = searchText.split(',');
+    const filterJSON = deepClone(orgJSON);
+    const result = deepFilter(filterJSON, searchKeys)
+    if (Object.entries(result).length > 0) {
+      formatJSON(JSON.stringify(result));
+    } else {
+      formatJSON(JSON.stringify({
+        errorCode: "No Match",
+        error: "No match for the key/value entered for search",
+        searchText: searchText
+      }))
+    }
   }
 }
 
@@ -545,10 +552,10 @@ function prepareBody() {
  <div class="JB_search notranslate" id="search" translate="no">
   <div class="JB_json_toolbar" id="json_search_toolbar">
     <div class="JB_button-wrapper">
-      <input id="json_search_text" class="JB_search_textbox" placeholder="Enter key/value to search"/>
+      <input id="json_search_text" class="JB_search_textbox" placeholder="Enter keys/values to search"/>
     </div>
   </div>
-  <button type="button" class="JB_toggle_toolbar JB_cr-button" aria-label="Search JSON" title="Search JSON" id="toggle_search_toolbar"><img width="24px" height="24px" alt="Toggle Toolbar" src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 50 50' width='50px' height='50px'%3E%3Cpath d='M 21 3 C 11.654545 3 4 10.654545 4 20 C 4 29.345455 11.654545 37 21 37 C 24.701287 37 28.127393 35.786719 30.927734 33.755859 L 44.085938 46.914062 L 46.914062 44.085938 L 33.875 31.046875 C 36.43682 28.068316 38 24.210207 38 20 C 38 10.654545 30.345455 3 21 3 z M 21 5 C 29.254545 5 36 11.745455 36 20 C 36 28.254545 29.254545 35 21 35 C 12.745455 35 6 28.254545 6 20 C 6 11.745455 12.745455 5 21 5 z'/%3E%3C/svg%3E"/></button>
+  <button type="button" class="JB_toggle_toolbar JB_cr-button" aria-label="Search JSON (comma seperated multiple keys / values allowed, search is case sensitive)" title="Search JSON (comma seperated multiple keys / values allowed, search is case sensitive)" id="toggle_search_toolbar"><img width="24px" height="24px" alt="Toggle Toolbar" src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 50 50' width='50px' height='50px'%3E%3Cpath d='M 21 3 C 11.654545 3 4 10.654545 4 20 C 4 29.345455 11.654545 37 21 37 C 24.701287 37 28.127393 35.786719 30.927734 33.755859 L 44.085938 46.914062 L 46.914062 44.085938 L 33.875 31.046875 C 36.43682 28.068316 38 24.210207 38 20 C 38 10.654545 30.345455 3 21 3 z M 21 5 C 29.254545 5 36 11.745455 36 20 C 36 28.254545 29.254545 35 21 35 C 12.745455 35 6 28.254545 6 20 C 6 11.745455 12.745455 5 21 5 z'/%3E%3C/svg%3E"/></button>
 </div>
 
 <div class="JB_parsed notranslate" id="parsed" translate="no" ${options.defaultTab == "parsed" ? "" : "hidden"}></div>
@@ -578,7 +585,9 @@ function prepareBody() {
     toggleToolbar();
   });
    btn_search_toolbar.addEventListener("click", function () {
-    toggleSearchToolbar();
+     toggleSearchToolbar();
+     input_search_text.focus();
+     input_search_text.value = "";
    });
   input_search_text.addEventListener("keydown", function (evt) {
     if (evt.key === "Enter") {

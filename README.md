@@ -1,3 +1,6 @@
+
+![JSON Beautifier](https://github.com/chrispeterjeyaraj/json-beautifier/blob/main/images/banners/promo_tile_marquee.png?raw=true)
+
 # JSON Beautifier
 
 ### A Chrome Extension for formating and prettifying JSON automatically in the browser

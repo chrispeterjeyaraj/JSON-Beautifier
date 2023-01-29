@@ -4,18 +4,10 @@
 
 ### Workflows [![Deno](https://github.com/chrispeterjeyaraj/json-beautifier/actions/workflows/deno.yml/badge.svg)](https://github.com/chrispeterjeyaraj/json-beautifier/actions/workflows/deno.yml)
 
-## Change Log
-* ⚡ `Formatted Raw` and `Raw` are now Separate Modes
-* ⚡ Now Extension Settings and Preferences can be managed Directly from `Extension Settings` and `Extension Options`
-* ⚡ More Consistent Styling over Pages
-* ⚡ Now You can also set your `Default Format` whether its `Parsed`, `Formatted Raw` or `Raw` (Do it from `Extension Settings`)
-* ⚡ Now you can also choose to keep The `System Default Theme` or your `Custom Theme Choice` (Need to be set in `Extension Settings`. Its `System Default` by default)
-* ⚡ Added Support for more sites
-* ⚡ Performance Improvements
-
 ## Features:
 * Dark Mode
 * Syntax Highlighting
+* Multi-Search
 * Works Offline
 * Works with any JSON Webpage
 * Automatically Linkify Links

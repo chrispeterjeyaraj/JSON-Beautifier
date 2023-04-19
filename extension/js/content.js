@@ -1,8 +1,5 @@
-let orgJSON, btn_parsed, btn_parsed_raw, btn_raw, btn_toolbar, btn_search_toolbar, toolbar, searchToolbar, parsedCode,
-  rawCode, tree, isDark = true, isToolbarOpen = false, isSearchToolbarOpen = false,
-  options = { defaultTab: "parsed", themeMode: "auto", currentTheme: "dark" };
+let orgJSON, btn_parsed, btn_parsed_raw, btn_raw, btn_toolbar, btn_search_toolbar, toolbar, searchToolbar, parsedCode, rawCode, tree, isDark = true, isToolbarOpen = false, isSearchToolbarOpen = false, options = { defaultTab: "parsed", themeMode: "auto", currentTheme: "dark" };
 const bucket = "JSON_FORMATTER_OPTIONS", hotkeys = { toolbar: "t", search: "s", parsed: "p", parsed_raw: "r", raw: "r", dark: "d" };
-
 chrome.storage.local.get(bucket, (data) => {
   Object.assign(options, data[bucket]);
   if (Object.keys(options).length === 0) {
@@ -30,9 +27,8 @@ chrome.storage.onChanged.addListener((changes, area) => {
 
 function formatJSON(str) {
   let obj;
-  const text = str;
   try {
-    obj = JSON.parse(text);
+    obj = JSON.parse(str);
   }
   catch (_e) {
     // Not JSON
@@ -57,7 +53,7 @@ function formatJSON(str) {
 function deepClone(source) {
   const temp = [];
   if (source) {
-    return JSON.parse(JSON.stringify(source, (key, value) => {
+    return JSON.parse(JSON.stringify(source, (_key, value) => {
       if (typeof value === 'object' && value !== null) {
         if (temp.indexOf(value) !== -1) {
           return undefined;
@@ -73,7 +69,7 @@ function deepClone(source) {
 // ##BUG## Need to add ability to search for data inside array items. Only array keys are supported now.
 const deepFilter = (obj, searchText) => {
   //iterate the object
-  for (let key in obj) {
+  for (const key in obj) {
     const val = obj[key];
     if (typeof val === "object") {
       if (!searchText.includes(key)) {
@@ -137,14 +133,14 @@ function _() {
     try {
       JSON.parse(document.body.innerText);
     }
-    catch (e) {
+    catch (_e) {
       tb = true;
     }
     if (tb) {
       return false;
     }
   }
-  let pre = document.body.childNodes[0];
+  const pre = document.body.childNodes[0];
   pre.hidden = true;
   codeTimeout = setTimeout(function () {
     pre.hidden = false;
@@ -165,7 +161,7 @@ function _() {
     pre.hidden = false;
     return false;
   }
-  let jsonLen = (preCode || "").length;
+  const jsonLen = (preCode || "").length;
   if (
     jsonLen > (100000000) ||
     jsonLen === 0
@@ -195,7 +191,7 @@ function _() {
     isJSON = true;
     clearTimeout(codeTimeout);
   }
-  catch (e) {
+  catch (_e) {
     // Not JSON
     pre.hidden = false;
   }
@@ -206,7 +202,7 @@ function _() {
   }
 }
 
-window.addEventListener("load", _);
+globalThis.addEventListener("load", _);
 
 function expandedTemplate(params = {}) {
   const { key, size } = params;
@@ -299,7 +295,7 @@ function createContainerElement(dark) {
  * @return html element
  */
 function createNodeElement(node) {
-  let el = document.createElement('div');
+  const el = document.createElement('div');
 
   const getSizeString = (node) => {
     const len = node.children.length;
@@ -323,7 +319,7 @@ function createNodeElement(node) {
       val = '"' + node.value + '"';
       val = linkify(formatHTML(val));
     }
-    let ky = linkify(formatHTML(node.key))
+    const ky = linkify(formatHTML(node.key))
     el.innerHTML = notExpandedTemplate({
       key: ky,
       value: val,
@@ -360,14 +356,14 @@ function getDataType(val) {
  * @param {object} target
  * @param {function} callback
  */
-function traverseObject(target, callback) {
-  callback(target);
-  if (typeof target === 'object') {
-    for (let key in target) {
-      traverseObject(target[key], callback);
-    }
-  }
-}
+// function traverseObject(target, callback) {
+//   callback(target);
+//   if (typeof target === 'object') {
+//     for (let key in target) {
+//       traverseObject(target[key], callback);
+//     }
+//   }
+// }
 
 
 /**
@@ -394,6 +390,7 @@ function createNode(opt = {}) {
   return {
     key: opt.key || null,
     parent: opt.parent || null,
+    // deno-lint-ignore no-prototype-builtins
     value: opt.hasOwnProperty('value') ? opt.value : null,
     isExpanded: opt.isExpanded || false,
     type: opt.type || null,
@@ -411,7 +408,7 @@ function createNode(opt = {}) {
  */
 function createSubnode(data, node) {
   if (typeof data === 'object') {
-    for (let key in data) {
+    for (const key in data) {
       const child = createNode({
         value: data[key],
         key: key,
@@ -450,12 +447,12 @@ function createTree(jsonData) {
  * @param {htmlElement} targetElement
  * @return {object} tree
  */
-function renderJSON(jsonData, targetElement) {
-  const parsedData = typeof jsonData === 'string' ? JSON.parse(formatHTML(jsonData)) : jsonData;
-  const tree = createTree(parsedData);
-  render(tree, targetElement);
-  return tree;
-}
+// function renderJSON(jsonData, targetElement) {
+//   const parsedData = typeof jsonData === 'string' ? JSON.parse(formatHTML(jsonData)) : jsonData;
+//   const tree = createTree(parsedData);
+//   render(tree, targetElement);
+//   return tree;
+// }
 
 
 /**
@@ -470,15 +467,16 @@ function render(tree, targetElement, option = { theme: "dark", string: false }) 
   if (option.string === undefined || typeof (option.string !== "boolean")) {
     option.string = false;
   }
-  let isDark = option.theme == "dark" ? true : false;
+  const isDark = option.theme == "dark" ? true : false;
   const containerEl = createContainerElement(isDark);
 
   traverseTree(tree, function (node) {
     node.el = createNodeElement(node);
     containerEl.appendChild(node.el);
   });
-  let removeChilds = function (node) {
+  const removeChilds = function (node) {
     let last;
+    // deno-lint-ignore no-cond-assign
     while (last = node.lastChild) node.removeChild(last);
   };
   removeChilds(targetElement);
@@ -500,13 +498,13 @@ function expandChildren(node) {
   });
 }
 
-function collapseChildren(node) {
-  traverseTree(node, function (child) {
-    child.isExpanded = false;
-    if (child.depth > node.depth) child.el.classList.add('hide');
-    setCaretIconRight(child);
-  });
-}
+// function collapseChildren(node) {
+//   traverseTree(node, function (child) {
+//     child.isExpanded = false;
+//     if (child.depth > node.depth) child.el.classList.add('hide');
+//     setCaretIconRight(child);
+//   });
+// }
 
 /**
  * HTML Formatter
@@ -624,7 +622,7 @@ function prepareBody() {
     darkbool = options.currentTheme == "dark" ? true : false;
     toggleDarkMode(darkbool);
   }
-  window.addEventListener("keydown", (e) => {
+  globalThis.addEventListener("keydown", (e) => {
     if (e.target.tagName === "INPUT" || e.target.isContentEditable) {
       return false;
     }
@@ -674,8 +672,8 @@ function setupFormatter(str) {
   parsedRawCode.innerHTML = JSON.stringify(JSON.parse(code), undefined, 2);
   rawCode.innerHTML = JSON.stringify(JSON.parse(code));
   tree = createTree(code);
-  let thme = isDark ? "dark" : "light";
-  let renderedCode = render(tree, parsedCode, { theme: thme, string: true });
+  const thme = isDark ? "dark" : "light";
+  const renderedCode = render(tree, parsedCode, { theme: thme, string: true });
   expandChildren(tree);
   return [renderedCode, JSON.stringify(JSON.parse(code), undefined, 2)];
 }
@@ -847,10 +845,13 @@ function toggleDarkMode(bool) {
 
 function linkify(inputText) {
   //URLs starting with http://, https://, or ftp://
+  // deno-lint-ignore prefer-const
   let P1 = /(\b(https?|ftp):\/\/[-A-Z0-9+&@#\/%?=~_|!:,.;]*[-A-Z0-9+&@#\/%=~_|])/gim,
     //URLs starting with "www." (without // before it, or it'd re-link the ones done above).
+    // deno-lint-ignore prefer-const
     P2 = /(^|[^\/])(www\.[\S]+(\b|$))/gim,
     //Change email addresses to mailto:: links.
+    // deno-lint-ignore prefer-const
     P3 = /(([a-zA-Z0-9\-\_\.])+@[a-zA-Z\_]+?(\.[a-zA-Z]{2,6})+)/gim,
     text = inputText.replace(P1, '<a class="JB_linkify-link" href="$1" target="_blank">$1</a>');
   text = text.replace(P2, '$1<a class="JB_linkify-link" href="http://$2" target="_blank">$2</a>');

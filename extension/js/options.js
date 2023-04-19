@@ -1,6 +1,6 @@
-var defaultTabEl, themeModeEl, currentThemeEl, options = {};
-var bucket = "JSON_FORMATTER_OPTIONS";
-window.addEventListener("load", () => {
+let defaultTabEl, themeModeEl, currentThemeEl, options = {};
+const bucket = "JSON_FORMATTER_OPTIONS";
+globalThis.addEventListener("load", () => {
   defaultTabEl = document.getElementById("default_tab");
   themeModeEl = document.getElementById("theme_mode");
   currentThemeEl = document.getElementById("current_theme");

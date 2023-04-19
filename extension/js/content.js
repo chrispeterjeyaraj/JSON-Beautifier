@@ -1,4 +1,7 @@
-var orgJSON, btn_parsed, btn_parsed_raw, btn_raw, btn_toolbar, btn_search_toolbar, toolbar, searchToolbar, parsedCode, rawCode, tree, isDark = true, isToolbarOpen = false, isSearchToolbarOpen = false, options = { defaultTab: "parsed", themeMode: "auto", currentTheme: "dark" }, bucket = "JSON_FORMATTER_OPTIONS", hotkeys = { toolbar: "t", search: "s", parsed: "p", parsed_raw: "r", raw: "r", dark: "d" };
+let orgJSON, btn_parsed, btn_parsed_raw, btn_raw, btn_toolbar, btn_search_toolbar, toolbar, searchToolbar, parsedCode,
+  rawCode, tree, isDark = true, isToolbarOpen = false, isSearchToolbarOpen = false,
+  options = { defaultTab: "parsed", themeMode: "auto", currentTheme: "dark" };
+const bucket = "JSON_FORMATTER_OPTIONS", hotkeys = { toolbar: "t", search: "s", parsed: "p", parsed_raw: "r", raw: "r", dark: "d" };
 
 chrome.storage.local.get(bucket, (data) => {
   Object.assign(options, data[bucket]);
@@ -15,36 +18,37 @@ chrome.storage.onChanged.addListener((changes, area) => {
   if (area === 'local' && changes[bucket]?.newValue) {
     Object.assign(options, changes[bucket].newValue);
     if (options.themeMode == "manual") {
-      let darkbool = options.currentTheme == "dark" ? true : false;
+      const darkbool = options.currentTheme == "dark" ? true : false;
       toggleDarkMode(darkbool);
     }
     if (options.themeMode == "auto") {
-      let darkbool = window.matchMedia("(prefers-color-scheme: dark)").matches;
+      const darkbool = window.matchMedia("(prefers-color-scheme: dark)").matches;
       toggleDarkMode(darkbool);
     }
   }
 });
 
 function formatJSON(str) {
-  var obj, text = str;
+  let obj;
+  const text = str;
   try {
     obj = JSON.parse(text);
   }
-  catch (e) {
+  catch (_e) {
     // Not JSON
   }
   if (typeof obj !== 'object' && typeof obj !== 'array') return;
-  var formated = setupFormatter(JSON.stringify(obj));
+  const formated = setupFormatter(JSON.stringify(obj));
   setTimeout(function () {
     try {
-      var script = document.createElement("script");
+      const script = document.createElement("script");
       script.src = chrome.runtime.getURL("js/messenger.js");
       document.head.appendChild(script);
       setTimeout(() => {
         postMessage({ type: "real_json", msg: JSON.parse(formated[1]) });
       }, 100);
     }
-    catch (err) {
+    catch (_err) {
       console.log("JSON Formatter: Sorry but you can't access original JSON in console in this page.")
     }
   }, 100);
@@ -116,7 +120,7 @@ function searchJSON(searchText) {
 }
 
 function _() {
-  var preCode;
+  let preCode;
   if (!document ||
     !document.body ||
     !document.body.childNodes ||
@@ -140,7 +144,7 @@ function _() {
       return false;
     }
   }
-  var pre = document.body.childNodes[0];
+  let pre = document.body.childNodes[0];
   pre.hidden = true;
   codeTimeout = setTimeout(function () {
     pre.hidden = false;
@@ -161,7 +165,7 @@ function _() {
     pre.hidden = false;
     return false;
   }
-  var jsonLen = (preCode || "").length;
+  let jsonLen = (preCode || "").length;
   if (
     jsonLen > (100000000) ||
     jsonLen === 0
@@ -170,7 +174,7 @@ function _() {
     console.log("JSON Formatter: JSON too large to format!")
     return false;
   }
-  var isJSON = false, obj;
+  let isJSON = false, obj;
   try {
     obj = JSON.parse(preCode);
     while (typeof (obj) === "string") {
@@ -314,12 +318,12 @@ function createNodeElement(node) {
       toggleNode(node);
     });
   } else {
-    var val = node.value;
+    let val = node.value;
     if (typeof (node.value) == "string") {
       val = '"' + node.value + '"';
       val = linkify(formatHTML(val));
     }
-    var ky = linkify(formatHTML(node.key))
+    let ky = linkify(formatHTML(node.key))
     el.innerHTML = notExpandedTemplate({
       key: ky,
       value: val,
@@ -466,15 +470,15 @@ function render(tree, targetElement, option = { theme: "dark", string: false }) 
   if (option.string === undefined || typeof (option.string !== "boolean")) {
     option.string = false;
   }
-  var isDark = option.theme == "dark" ? true : false;
+  let isDark = option.theme == "dark" ? true : false;
   const containerEl = createContainerElement(isDark);
 
   traverseTree(tree, function (node) {
     node.el = createNodeElement(node);
     containerEl.appendChild(node.el);
   });
-  var removeChilds = function (node) {
-    var last;
+  let removeChilds = function (node) {
+    let last;
     while (last = node.lastChild) node.removeChild(last);
   };
   removeChilds(targetElement);
@@ -508,7 +512,7 @@ function collapseChildren(node) {
  * HTML Formatter
  */
 function formatHTML(html) {
-  var str = html;
+  let str = html;
   str = str.replace(/</gm, "&lt;");
   str = str.replace(/>/gm, "&gt;");
   return str;
@@ -659,7 +663,7 @@ function prepareBody() {
   });
 }
 function setupFormatter(str) {
-  var code;
+  let code;
   if (typeof (str) == "object") {
     code = JSON.stringify(str);
     code = JSON.stringify(JSON.parse(formatHTML(JSON.stringify(code))));
@@ -670,8 +674,8 @@ function setupFormatter(str) {
   parsedRawCode.innerHTML = JSON.stringify(JSON.parse(code), undefined, 2);
   rawCode.innerHTML = JSON.stringify(JSON.parse(code));
   tree = createTree(code);
-  var thme = isDark ? "dark" : "light";
-  var renderedCode = render(tree, parsedCode, { theme: thme, string: true });
+  let thme = isDark ? "dark" : "light";
+  let renderedCode = render(tree, parsedCode, { theme: thme, string: true });
   expandChildren(tree);
   return [renderedCode, JSON.stringify(JSON.parse(code), undefined, 2)];
 }
@@ -843,7 +847,7 @@ function toggleDarkMode(bool) {
 
 function linkify(inputText) {
   //URLs starting with http://, https://, or ftp://
-  var P1 = /(\b(https?|ftp):\/\/[-A-Z0-9+&@#\/%?=~_|!:,.;]*[-A-Z0-9+&@#\/%=~_|])/gim,
+  let P1 = /(\b(https?|ftp):\/\/[-A-Z0-9+&@#\/%?=~_|!:,.;]*[-A-Z0-9+&@#\/%=~_|])/gim,
     //URLs starting with "www." (without // before it, or it'd re-link the ones done above).
     P2 = /(^|[^\/])(www\.[\S]+(\b|$))/gim,
     //Change email addresses to mailto:: links.

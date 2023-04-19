@@ -5,7 +5,7 @@
 
 ### A Chrome Extension for formating and prettifying JSON automatically in the browser
 
-### Workflows [![Deno]([![Deno](https://github.com/chrispeterjeyaraj/json-beautifier/actions/workflows/deno.yml/badge.svg?branch=main)](https://github.com/chrispeterjeyaraj/json-beautifier/actions/workflows/deno.yml))
+### Workflows [![Deno](https://github.com/chrispeterjeyaraj/json-beautifier/actions/workflows/deno.yml/badge.svg?branch=main)](https://github.com/chrispeterjeyaraj/json-beautifier/actions/workflows/deno.yml))
 
 ## Features:
 * Dark Mode

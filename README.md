@@ -12,7 +12,7 @@
 * Syntax Highlighting
 * Multi Search
 * Works Offline
-* Works with any JSON Webpage
+* Works with any JSON
 * Automatically Linkify Links
 * Formats JSON automatically
 * `Raw`, `Formatted Raw` and `Parsed` Mode

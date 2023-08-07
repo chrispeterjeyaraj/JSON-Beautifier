@@ -1,11 +1,11 @@
 {
   "name": "JSON Beautifier",
   "short_name": "JSON Beautifier",
-  "version": "1",
+  "version": "0.10.1",
   "version_name": "Version 1 Dev",
   "manifest_version": 3,
   "description": "A JSON Beautifier with syntax highlighting, themes, search and many more features.",
-  "author": "Christopher Peterjeyaraj",
+  "author": "Christopher Peterjeyaraj <christopher.peterjerjeyaraj@gmail.com>",
   "homepage_url": "https://github.com/chrispeterjeyaraj/json-beautifier",
   "minimum_chrome_version": "88",
   "offline_enabled": true,
@@ -47,7 +47,12 @@
         "<all_urls>"
       ],
       "js": [
-        "js/content.js"
+        "js/body.js",
+        "js/utils.js",
+        "js/content.js",
+        "js/init.js",
+        "js/linkify.js",
+        "js/search.js"
       ],
       "css": [
         "css/content.css"

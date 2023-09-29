@@ -1,5 +1,5 @@
 let orgJSON, btn_parsed, btn_parsed_raw, btn_raw, btn_toolbar, btn_search_toolbar, toolbar, searchToolbar, parsedCode, rawCode, tree, isDark = true, isToolbarOpen = false, isSearchToolbarOpen = false, options = { defaultTab: "parsed", themeMode: "auto", currentTheme: "dark" };
-const bucket = "JSON_FORMATTER_OPTIONS", hotkeys = { toolbar: "t", search: "s", parsed: "p", parsed_raw: "r", raw: "r", dark: "d" };
+const bucket = "JSON_VOIR_OPTIONS", hotkeys = { toolbar: "t", search: "s", parsed: "p", parsed_raw: "r", raw: "r", dark: "d" };
 chrome.storage.local.get(bucket, (data) => {
   Object.assign(options, data[bucket]);
   if (Object.keys(options).length === 0) {

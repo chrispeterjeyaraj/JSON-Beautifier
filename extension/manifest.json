@@ -1,12 +1,12 @@
 {
-  "name": "JSON Beautifier",
-  "short_name": "JSON Beautifier",
-  "version": "1",
-  "version_name": "Version 1 Dev",
+  "name": "JSONVoir",
+  "short_name": "JSONVoir",
+  "version": "0.1.0",
+  "version_name": "Version 0.1",
   "manifest_version": 3,
-  "description": "A JSON Beautifier with syntax highlighting, themes, search and many more features.",
+  "description": "A Chrome extension for formating and prettifying JSON automatically in the browser",
   "author": "Christopher Peterjeyaraj",
-  "homepage_url": "https://github.com/chrispeterjeyaraj/json-beautifier",
+  "homepage_url": "https://github.com/chrispeterjeyaraj/jsonvoir",
   "minimum_chrome_version": "88",
   "offline_enabled": true,
   "options_ui": {
@@ -26,7 +26,7 @@
       "512": "images/icons/icon_round_512.png",
       "1024": "images/icons/icon_round_1024.png"
     },
-    "default_title": "JSON Formatter - Edit Preferences",
+    "default_title": "JSONVoir - Edit Preferences",
     "default_popup": "options.html"
   },
   "icons": {

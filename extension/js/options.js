@@ -1,5 +1,5 @@
 let defaultTabEl, themeModeEl, currentThemeEl, options = {};
-const bucket = "JSON_FORMATTER_OPTIONS";
+const bucket = "JSON_VOIR_OPTIONS";
 globalThis.addEventListener("load", () => {
   defaultTabEl = document.getElementById("default_tab");
   themeModeEl = document.getElementById("theme_mode");

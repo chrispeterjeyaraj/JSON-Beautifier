@@ -1,139 +1,219 @@
-let orgJSON, btn_parsed, btn_parsed_raw, btn_raw, btn_toolbar, btn_search_toolbar, toolbar, searchToolbar, parsedCode, rawCode, tree, isDark = true, isToolbarOpen = false, isSearchToolbarOpen = false, options = { defaultTab: "parsed", themeMode: "auto", currentTheme: "dark" };
-const bucket = "JSON_VOIR_OPTIONS", hotkeys = { toolbar: "t", search: "s", parsed: "p", parsed_raw: "r", raw: "r", dark: "d" };
+let orgJSON,
+    btn_parsed,
+    btn_parsed_raw,
+    btn_raw,
+    btn_toolbar,
+    btn_search_toolbar,
+    toolbar,
+    searchToolbar,
+    parsedCode,
+    rawCode,
+    tree,
+    isDark = true,
+    isToolbarOpen = false,
+    isSearchToolbarOpen = false,
+    options = { defaultTab: "parsed", themeMode: "auto", currentTheme: "dark" };
+
+const bucket = "JSON_VOIR_OPTIONS",
+      hotkeys = {
+        toolbar: "t",
+        search: "s",
+        parsed: "p",
+        parsed_raw: "r",
+        raw: "r",
+        dark: "d",
+      };
+
 chrome.storage.local.get(bucket, (data) => {
   Object.assign(options, data[bucket]);
   if (Object.keys(options).length === 0) {
     options = {
       defaultTab: "parsed",
       themeMode: "auto",
-      currentTheme: "dark"
+      currentTheme: "dark",
     };
     chrome.storage.local.set({ [bucket]: options });
   }
 });
+
 chrome.storage.onChanged.addListener((changes, area) => {
-  if (area === 'local' && changes[bucket]?.newValue) {
+  if (area === "local" && changes[bucket]?.newValue) {
     Object.assign(options, changes[bucket].newValue);
     if (options.themeMode == "manual") {
       const darkbool = options.currentTheme == "dark" ? true : false;
       toggleDarkMode(darkbool);
     }
     if (options.themeMode == "auto") {
-      const darkbool = window.matchMedia("(prefers-color-scheme: dark)").matches;
+      const darkbool = window.matchMedia(
+        "(prefers-color-scheme: dark)"
+      ).matches;
       toggleDarkMode(darkbool);
     }
   }
 });
 
+/**
+ * Parses a JSON string and formats it.
+ *
+ * @param {String} str - The JSON string to be parsed and formatted.
+ * @return {undefined} This function does not return a value.
+ */
 function formatJSON(str) {
-  let obj;
   try {
-    obj = JSON.parse(str);
-  }
-  catch (_e) {
-    // Not JSON
-  }
-  if (typeof obj !== 'object' && typeof obj !== 'array') return;
-  const formated = setupFormatter(JSON.stringify(obj));
-  setTimeout(function () {
-    try {
-      const script = document.createElement("script");
-      script.src = chrome.runtime.getURL("js/messenger.js");
-      document.head.appendChild(script);
-      setTimeout(() => {
-        postMessage({ type: "real_json", msg: JSON.parse(formated[1]) });
-      }, 100);
+    const obj = JSON.parse(str);
+    if (!Array.isArray(obj) && typeof obj === "object") {
+      const formated = setupFormatter(JSON.stringify(obj));
+      loadMessengerScript(formated);
+    } else {
+      console.log("Invalid JSON format.");
     }
-    catch (_err) {
-      console.log("JSON Formatter: Sorry but you can't access original JSON in console in this page.")
-    }
-  }, 100);
+  } catch (error) {
+    console.error("JSON parsing error:", error);
+  }
 }
 
+/**
+ * Loads the messenger script by creating a new script element and adding it to the head of the document.
+ *
+ * @param {Object} formattedJSON - The formatted JSON object to be passed as a message to the loaded script.
+ * @return {undefined} This function does not return a value.
+ */
+function loadMessengerScript(formattedJSON) {
+  const script = document.createElement("script");
+  script.src = chrome.runtime.getURL("js/messenger.js");
+  script.onload = () => {
+    postMessage({ type: "real_json", msg: JSON.parse(formattedJSON[1]) });
+  };
+  script.onerror = (error) => {
+    console.error("Script load error:", error);
+  };
+  document.head.appendChild(script);
+}
+
+
+/**
+ * Deep clones an object or array.
+ *
+ * @param {any} source - The object or array to be cloned.
+ * @return {any} - The cloned object or array.
+ */
 function deepClone(source) {
-  const temp = [];
-  if (source) {
-    return JSON.parse(JSON.stringify(source, (_key, value) => {
-      if (typeof value === 'object' && value !== null) {
-        if (temp.indexOf(value) !== -1) {
-          return undefined;
+  const cloned = new WeakMap();
+
+  function clone(obj) {
+    if (typeof obj !== 'object' || obj === null) {
+      return obj; // Return primitive types and null as is
+    }
+
+    if (cloned.has(obj)) {
+      return cloned.get(obj); // Return the existing clone for circular references
+    }
+
+    if (Array.isArray(obj)) {
+      const arrClone = [];
+      cloned.set(obj, arrClone);
+      obj.forEach((item, index) => {
+        arrClone[index] = clone(item);
+      });
+      return arrClone;
+    }
+
+    if (typeof obj === 'object') {
+      const objClone = {};
+      cloned.set(obj, objClone);
+      for (const key in obj) {
+        if (obj.hasOwnProperty(key)) {
+          objClone[key] = clone(obj[key]);
         }
-        temp.push(value);
       }
-      return value;
-    }));
+      return objClone;
+    }
   }
-  return {};
+
+  return clone(source);
 }
 
-// ##BUG## Need to add ability to search for data inside array items. Only array keys are supported now.
+/**
+ * Filters a nested object or array by removing keys or elements that do not match the search text.
+ *
+ * @param {Object|Array} obj - The object or array to filter.
+ * @param {string[]} searchText - An array of search text to match against keys or values.
+ * @return {Object|Array} - The filtered object or array.
+ */
 const deepFilter = (obj, searchText) => {
-  //iterate the object
-  for (const key in obj) {
-    const val = obj[key];
-    if (typeof val === "object") {
-      if (!searchText.includes(key)) {
-        if (Array.isArray(val)) {
-          if (!searchText.includes(val)) {
-            delete obj[key]
-          }
-        } else {
-          deepFilter(val, searchText);
+  if (Array.isArray(obj)) {
+    for (let i = obj.length - 1; i >= 0; i--) {
+      deepFilter(obj[i], searchText);
+      if (typeof obj[i] === "object" && Object.keys(obj[i]).length === 0) {
+        obj.splice(i, 1);
+      }
+    }
+  } else if (typeof obj === "object") {
+    for (const key in obj) {
+      const val = obj[key];
+      if (typeof val === "object") {
+        deepFilter(val, searchText);
+        if (Object.keys(val).length === 0) {
+          delete obj[key];
+        }
+      } else {
+        // Check if the key or its value includes the searchText
+        const keyMatches = searchText.some(item => key.includes(item));
+        const valueMatches = searchText.some(item => val.toString().includes(item));
+        if (!keyMatches && !valueMatches) {
+          delete obj[key];
         }
       }
-    }
-    else {
-      const filteredSearch = searchText.filter((item) => key.toString().includes(item) || obj[key].toString().includes(item));
-      if (filteredSearch.length === 0) {
-          delete obj[key]
-      }
-    }
-    if (JSON.stringify(val) === "{}" || JSON.stringify(val) === "[]") {
-      delete obj[key];
     }
   }
   return obj;
 };
 
-// Search through the JSON recursively to find out matched items
+/**
+ * Searches for a specific text in a JSON object and returns the filtered result.
+ *
+ * @param {string} searchText - The text to search for in the JSON object.
+ * @return {undefined} This function does not return any value.
+ */
 function searchJSON(searchText) {
   if (searchText == "") {
     formatJSON(JSON.stringify(orgJSON));
   } else {
-    const searchKeys = searchText.split(',');
+    const searchKeys = searchText.split(",");
     const filterJSON = deepClone(orgJSON);
-    const result = deepFilter(filterJSON, searchKeys)
+    const result = deepFilter(filterJSON, searchKeys);
     if (Object.entries(result).length > 0) {
       formatJSON(JSON.stringify(result));
     } else {
-      formatJSON(JSON.stringify({
-        errorCode: "No Match",
-        error: "No match for the key/value entered for search",
-        searchText: searchText
-      }))
+      formatJSON(
+        JSON.stringify({
+          errorCode: "No Match",
+          error: "No match for the key/value entered for search",
+          searchText: searchText,
+        })
+      );
     }
   }
 }
 
 function _() {
   let preCode;
-  if (!document ||
+  if (
+    !document ||
     !document.body ||
     !document.body.childNodes ||
     document.body === null ||
     document.body === undefined ||
     document.body.childNodes === null ||
-    document.body.childNodes === undefined) {
+    document.body.childNodes === undefined
+  ) {
     return false;
   }
-  if (
-    document.body.childNodes.length !== 1
-  ) {
+  if (document.body.childNodes.length !== 1) {
     let tb = false;
     try {
       JSON.parse(document.body.innerText);
-    }
-    catch (_e) {
+    } catch (_e) {
       tb = true;
     }
     if (tb) {
@@ -147,36 +227,48 @@ function _() {
   }, 1000);
   if (pre.tagName === "PRE" && pre.nodeName === "PRE" && pre.nodeType === 1) {
     preCode = pre.innerText;
-  }
-  else if (pre.tagName === "DIV" && pre.nodeName === "DIV" && pre.nodeType === 1) {
+  } else if (
+    pre.tagName === "DIV" &&
+    pre.nodeName === "DIV" &&
+    pre.nodeType === 1
+  ) {
     preCode = pre.innerText;
-  }
-  else if (pre.tagName === "CODE" && pre.nodeName === "CODE" && pre.nodeType === 1) {
+  } else if (
+    pre.tagName === "CODE" &&
+    pre.nodeName === "CODE" &&
+    pre.nodeType === 1
+  ) {
     preCode = pre.innerText;
-  }
-  else if (pre.tagName === undefined && pre.nodeName === "#text" && pre.nodeType === 3) {
+  } else if (
+    pre.tagName === undefined &&
+    pre.nodeName === "#text" &&
+    pre.nodeType === 3
+  ) {
     preCode = pre.nodeValue;
-  }
-  else {
+  } else {
     pre.hidden = false;
     return false;
   }
   const jsonLen = (preCode || "").length;
-  if (
-    jsonLen > (100000000) ||
-    jsonLen === 0
-  ) {
+  if (jsonLen > 100000000 || jsonLen === 0) {
     pre.hidden = false;
-    console.log("JSON Formatter: JSON too large to format!")
+    console.log("JSON Formatter: JSON too large to format!");
     return false;
   }
-  let isJSON = false, obj;
+  let isJSON = false,
+    obj;
   try {
     obj = JSON.parse(preCode);
-    while (typeof (obj) === "string") {
+    while (typeof obj === "string") {
       obj = JSON.parse(obj);
     }
-    if (typeof (obj) === "number" || typeof (obj) === "boolean" || typeof (obj) === "null" || typeof (obj) === "undefined" || typeof (obj) === "NaN") {
+    if (
+      typeof obj === "number" ||
+      typeof obj === "boolean" ||
+      typeof obj === "null" ||
+      typeof obj === "undefined" ||
+      typeof obj === "NaN"
+    ) {
       pre.hidden = false;
       return false;
     }
@@ -184,14 +276,13 @@ function _() {
       pre.hidden = false;
       return false;
     }
-    if (typeof (obj) === "object" && Object.keys(obj).length === 0) {
+    if (typeof obj === "object" && Object.keys(obj).length === 0) {
       pre.hidden = false;
       return false;
     }
     isJSON = true;
     clearTimeout(codeTimeout);
-  }
-  catch (_e) {
+  } catch (_e) {
     // Not JSON
     pre.hidden = false;
   }
@@ -212,9 +303,8 @@ function expandedTemplate(params = {}) {
       <div class="json-key">${key}</div>
       <div class="json-size">${size}</div>
     </div>
-  `
+  `;
 }
-
 
 function notExpandedTemplate(params = {}) {
   const { key, value, type } = params;
@@ -225,49 +315,44 @@ function notExpandedTemplate(params = {}) {
       <div class="json-separator">:</div>
       <div class="json-value json-${type}">${value}</div>
     </div>
-  `
+  `;
 }
-
 
 function hideNodeChildren(node) {
   node.children.forEach((child) => {
-    child.el.classList.add('hide');
+    child.el.classList.add("hide");
     if (child.isExpanded) {
       hideNodeChildren(child);
     }
   });
 }
 
-
 function showNodeChildren(node) {
   node.children.forEach((child) => {
-    child.el.classList.remove('hide');
+    child.el.classList.remove("hide");
     if (child.isExpanded) {
       showNodeChildren(child);
     }
   });
 }
 
-
 function setCaretIconDown(node) {
   if (node.children.length > 0) {
-    const icon = node.el.querySelector('.codicon');
+    const icon = node.el.querySelector(".codicon");
     if (icon) {
-      icon.classList.replace('codicon-chevron-right', 'codicon-chevron-down');
+      icon.classList.replace("codicon-chevron-right", "codicon-chevron-down");
     }
   }
 }
-
 
 function setCaretIconRight(node) {
   if (node.children.length > 0) {
-    const icon = node.el.querySelector('.codicon');
+    const icon = node.el.querySelector(".codicon");
     if (icon) {
-      icon.classList.replace('codicon-chevron-down', 'codicon-chevron-right');
+      icon.classList.replace("codicon-chevron-down", "codicon-chevron-right");
     }
   }
 }
-
 
 function toggleNode(node) {
   if (node.isExpanded) {
@@ -281,13 +366,11 @@ function toggleNode(node) {
   }
 }
 
-
 function createContainerElement(dark) {
-  const el = document.createElement('div');
-  el.className = dark ? 'JB_json-container JB_dark' : 'JB_json-container';
+  const el = document.createElement("div");
+  el.className = dark ? "JB_json-container JB_dark" : "JB_json-container";
   return el;
 }
-
 
 /**
  * Create node html element
@@ -295,49 +378,48 @@ function createContainerElement(dark) {
  * @return html element
  */
 function createNodeElement(node) {
-  const el = document.createElement('div');
+  const el = document.createElement("div");
 
   const getSizeString = (node) => {
     const len = node.children.length;
-    if (node.type === 'array' || node.type === 'object') return `(${len})`;
+    if (node.type === "array" || node.type === "object") return `(${len})`;
     return null;
-  }
+  };
 
   if (node.children.length > 0) {
     el.innerHTML = expandedTemplate({
       key: node.key,
       size: getSizeString(node),
-    })
+    });
 
-    const caretEl = el.querySelector('.caret-icon');
-    caretEl.addEventListener('click', () => {
+    const caretEl = el.querySelector(".caret-icon");
+    caretEl.addEventListener("click", () => {
       toggleNode(node);
     });
   } else {
     let val = node.value;
-    if (typeof (node.value) == "string") {
+    if (typeof node.value == "string") {
       val = '"' + node.value + '"';
       val = linkify(formatHTML(val));
     }
-    const ky = linkify(formatHTML(node.key))
+    const ky = linkify(formatHTML(node.key));
     el.innerHTML = notExpandedTemplate({
       key: ky,
       value: val,
-      type: typeof node.value
-    })
+      type: typeof node.value,
+    });
   }
 
   const lineEl = el.children[0];
 
   if (node.parent !== null) {
-    lineEl.classList.add('hide');
+    lineEl.classList.add("hide");
   }
 
-  lineEl.style = 'margin-left: ' + node.depth * 18 + 'px;';
+  lineEl.style = "margin-left: " + node.depth * 18 + "px;";
 
   return lineEl;
 }
-
 
 /**
  * Get value data type
@@ -345,26 +427,10 @@ function createNodeElement(node) {
  */
 function getDataType(val) {
   let type = typeof val;
-  if (Array.isArray(val)) type = 'array';
-  if (val === null) type = 'null';
+  if (Array.isArray(val)) type = "array";
+  if (val === null) type = "null";
   return type;
 }
-
-
-/**
- * Recursively traverse json object
- * @param {object} target
- * @param {function} callback
- */
-// function traverseObject(target, callback) {
-//   callback(target);
-//   if (typeof target === 'object') {
-//     for (let key in target) {
-//       traverseObject(target[key], callback);
-//     }
-//   }
-// }
-
 
 /**
  * Recursively traverse Tree object
@@ -380,7 +446,6 @@ function traverseTree(node, callback) {
   }
 }
 
-
 /**
  * Create node object
  * @param {object} opt options
@@ -391,15 +456,14 @@ function createNode(opt = {}) {
     key: opt.key || null,
     parent: opt.parent || null,
     // deno-lint-ignore no-prototype-builtins
-    value: opt.hasOwnProperty('value') ? opt.value : null,
+    value: opt.hasOwnProperty("value") ? opt.value : null,
     isExpanded: opt.isExpanded || false,
     type: opt.type || null,
     children: opt.children || [],
     el: opt.el || null,
     depth: opt.depth || 0,
-  }
+  };
 }
-
 
 /**
  * Create subnode for node
@@ -407,7 +471,7 @@ function createNode(opt = {}) {
  * @param {object} node
  */
 function createSubnode(data, node) {
-  if (typeof data === 'object') {
+  if (typeof data === "object") {
     for (const key in data) {
       const child = createNode({
         value: data[key],
@@ -422,14 +486,14 @@ function createSubnode(data, node) {
   }
 }
 
-
 /**
  * Create tree
  * @param {object | string} jsonData
  * @return {object}
  */
 function createTree(jsonData) {
-  const data = typeof jsonData === 'string' ? JSON.parse(formatHTML(jsonData)) : jsonData;
+  const data =
+    typeof jsonData === "string" ? JSON.parse(formatHTML(jsonData)) : jsonData;
 
   const rootNode = createNode({
     value: data,
@@ -440,27 +504,16 @@ function createTree(jsonData) {
   return rootNode;
 }
 
-
-/**
- * Render JSON string into DOM container
- * @param {string | object} jsonData
- * @param {htmlElement} targetElement
- * @return {object} tree
- */
-// function renderJSON(jsonData, targetElement) {
-//   const parsedData = typeof jsonData === 'string' ? JSON.parse(formatHTML(jsonData)) : jsonData;
-//   const tree = createTree(parsedData);
-//   render(tree, targetElement);
-//   return tree;
-// }
-
-
 /**
  * Render tree into DOM container
  * @param {object} tree
  * @param {htmlElement} targetElement
  */
-function render(tree, targetElement, option = { theme: "dark", string: false }) {
+function render(
+  tree,
+  targetElement,
+  option = { theme: "dark", string: false }
+) {
   if (option.theme != "dark" && option.theme != "light") {
     throw new TypeError("Not a valid theme name!");
   }
@@ -477,34 +530,32 @@ function render(tree, targetElement, option = { theme: "dark", string: false }) 
   const removeChilds = function (node) {
     let last;
     // deno-lint-ignore no-cond-assign
-    while (last = node.lastChild) node.removeChild(last);
+    while ((last = node.lastChild)) node.removeChild(last);
   };
   removeChilds(targetElement);
   targetElement.appendChild(containerEl);
   if (option.string == true) {
     return containerEl.outerHTML;
-  }
-  else {
+  } else {
     return containerEl;
   }
 }
 
-
 function expandChildren(node) {
   traverseTree(node, function (child) {
-    child.el.classList.remove('hide');
+    child.el.classList.remove("hide");
     child.isExpanded = true;
     setCaretIconDown(child);
   });
 }
 
-// function collapseChildren(node) {
-//   traverseTree(node, function (child) {
-//     child.isExpanded = false;
-//     if (child.depth > node.depth) child.el.classList.add('hide');
-//     setCaretIconRight(child);
-//   });
-// }
+function collapseChildren(node) {
+  traverseTree(node, function (child) {
+    child.isExpanded = false;
+    if (child.depth > node.depth) child.el.classList.add('hide');
+    setCaretIconRight(child);
+  });
+}
 
 /**
  * HTML Formatter
@@ -542,9 +593,15 @@ function prepareBody() {
         src="data:image/svg+xml,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20height%3D%2224px%22%20viewBox%3D%220%200%2024%2024%22%20width%3D%2224px%22%20fill%3D%22rgb(30,30,30)%22%3E%3Cpath%20d%3D%22M0%200h24v24H0z%22%20fill%3D%22none%22%2F%3E%3Cpath%20d%3D%22M20%2015.31L23.31%2012%2020%208.69V4h-4.69L12%20.69%208.69%204H4v4.69L.69%2012%204%2015.31V20h4.69L12%2023.31%2015.31%2020H20v-4.69zM12%2018V6c3.31%200%206%202.69%206%206s-2.69%206-6%206z%22%2F%3E%3C%2Fsvg%3E"
         alt="Toggle Dark mode" /></button>
     <div class="JB_button-wrapper">
-      <button type="button" class="JB_cr-button ${options.defaultTab == "parsed" ? "active" : ""}" aria-label="Toggle Parsed Format: P key" title="Toggle Parsed Format: P key" id="open_parsed">Parsed</button>
-      <button type="button" class="JB_cr-button ${options.defaultTab == "parsed_raw" ? "active" : ""}" aria-label="Toggle Formatted Raw Format: Shift + R key" title="Toggle Formatted Raw Format: Shift + R key" id="open_parsed_raw">Formatted Raw</button>
-      <button type="button" class="JB_cr-button ${options.defaultTab == "raw" ? "active" : ""}" aria-label="Toggle Raw Format: R key" title="Toggle Raw Format: R key" id="open_raw">Raw</button>
+      <button type="button" class="JB_cr-button ${
+        options.defaultTab == "parsed" ? "active" : ""
+      }" aria-label="Toggle Parsed Format: P key" title="Toggle Parsed Format: P key" id="open_parsed">Parsed</button>
+      <button type="button" class="JB_cr-button ${
+        options.defaultTab == "parsed_raw" ? "active" : ""
+      }" aria-label="Toggle Formatted Raw Format: Shift + R key" title="Toggle Formatted Raw Format: Shift + R key" id="open_parsed_raw">Formatted Raw</button>
+      <button type="button" class="JB_cr-button ${
+        options.defaultTab == "raw" ? "active" : ""
+      }" aria-label="Toggle Raw Format: R key" title="Toggle Raw Format: R key" id="open_raw">Raw</button>
     </div>
   </div>
   <button type="button" class="JB_toggle_toolbar JB_cr-button" aria-label="Content Format" title="Content Format" id="toggle_toolbar"><img width="24px" height="24px" alt="Toggle Toolbar" src="data:image/svg+xml,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20height%3D%2224%22%20viewBox%3D%220%200%2024%2024%22%20width%3D%2224%22%3E%3Cpath%20d%3D%22M0%200h24v24H0V0z%22%20fill%3D%22none%22%2F%3E%3Cpath%20d%3D%22M4%2018h16c.55%200%201-.45%201-1s-.45-1-1-1H4c-.55%200-1%20.45-1%201s.45%201%201%201zm0-5h16c.55%200%201-.45%201-1s-.45-1-1-1H4c-.55%200-1%20.45-1%201s.45%201%201%201zM3%207c0%20.55.45%201%201%201h16c.55%200%201-.45%201-1s-.45-1-1-1H4c-.55%200-1%20.45-1%201z%22%2F%3E%3C%2Fsvg%3E"/></button>
@@ -560,23 +617,29 @@ function prepareBody() {
   <button type="button" class="JB_toggle_toolbar JB_cr-button" aria-label="Search JSON (comma seperated multiple keys / values allowed, search is case sensitive)" title="Search JSON (comma seperated multiple keys / values allowed, search is case sensitive)" id="toggle_search_toolbar"><img width="24px" height="24px" alt="Toggle Toolbar" src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 50 50' width='50px' height='50px'%3E%3Cpath d='M 21 3 C 11.654545 3 4 10.654545 4 20 C 4 29.345455 11.654545 37 21 37 C 24.701287 37 28.127393 35.786719 30.927734 33.755859 L 44.085938 46.914062 L 46.914062 44.085938 L 33.875 31.046875 C 36.43682 28.068316 38 24.210207 38 20 C 38 10.654545 30.345455 3 21 3 z M 21 5 C 29.254545 5 36 11.745455 36 20 C 36 28.254545 29.254545 35 21 35 C 12.745455 35 6 28.254545 6 20 C 6 11.745455 12.745455 5 21 5 z'/%3E%3C/svg%3E"/></button>
 </div>
 
-<div class="JB_parsed notranslate" id="parsed" translate="no" ${options.defaultTab == "parsed" ? "" : "hidden"}></div>
-<pre class="JB_raw JB_dark notranslate" id="parsed_raw" translate="no" ${options.defaultTab == "parsed_raw" ? "" : "hidden"}></pre>
-<pre class="JB_raw JB_dark notranslate" id="raw" translate="no" ${options.defaultTab == "raw" ? "" : "hidden"}></pre>`;
-    btn_parsed = document.getElementById("open_parsed"),
-    btn_parsed_raw = document.getElementById("open_parsed_raw"),
-    btn_raw = document.getElementById("open_raw"),
-    parsedCode = document.getElementById("parsed"),
-    parsedRawCode = document.getElementById("parsed_raw"),
-    rawCode = document.getElementById("raw"),
-    toolbar = document.getElementById("json_toolbar"),
-    searchToolbar = document.getElementById("json_search_toolbar"),
-    btn_toolbar = document.getElementById("toggle_toolbar");
-    btn_search_toolbar = document.getElementById("toggle_search_toolbar"),
-    input_search_text = document.getElementById("json_search_text"),
-  btn_parsed.addEventListener("click", function () {
-    openView("parsed");
-  });
+<div class="JB_parsed notranslate" id="parsed" translate="no" ${
+    options.defaultTab == "parsed" ? "" : "hidden"
+  }></div>
+<pre class="JB_raw JB_dark notranslate" id="parsed_raw" translate="no" ${
+    options.defaultTab == "parsed_raw" ? "" : "hidden"
+  }></pre>
+<pre class="JB_raw JB_dark notranslate" id="raw" translate="no" ${
+    options.defaultTab == "raw" ? "" : "hidden"
+  }></pre>`;
+  (btn_parsed = document.getElementById("open_parsed")),
+    (btn_parsed_raw = document.getElementById("open_parsed_raw")),
+    (btn_raw = document.getElementById("open_raw")),
+    (parsedCode = document.getElementById("parsed")),
+    (parsedRawCode = document.getElementById("parsed_raw")),
+    (rawCode = document.getElementById("raw")),
+    (toolbar = document.getElementById("json_toolbar")),
+    (searchToolbar = document.getElementById("json_search_toolbar")),
+    (btn_toolbar = document.getElementById("toggle_toolbar"));
+  (btn_search_toolbar = document.getElementById("toggle_search_toolbar")),
+    (input_search_text = document.getElementById("json_search_text")),
+    btn_parsed.addEventListener("click", function () {
+      openView("parsed");
+    });
   btn_parsed_raw.addEventListener("click", function () {
     openView("parsed_raw");
   });
@@ -586,14 +649,14 @@ function prepareBody() {
   btn_toolbar.addEventListener("click", function () {
     toggleToolbar();
   });
-   btn_search_toolbar.addEventListener("click", function () {
-     toggleSearchToolbar();
-     input_search_text.focus();
-     input_search_text.value = "";
-   });
+  btn_search_toolbar.addEventListener("click", function () {
+    toggleSearchToolbar();
+    input_search_text.focus();
+    input_search_text.value = "";
+  });
   input_search_text.addEventListener("keydown", function (evt) {
     if (evt.key === "Enter") {
-       searchJSON(input_search_text.value)
+      searchJSON(input_search_text.value);
     }
   });
   document.getElementById("toggle_dark").addEventListener("click", function () {
@@ -601,22 +664,26 @@ function prepareBody() {
   });
 
   if (options.themeMode == "auto") {
-    if (window.matchMedia && window.matchMedia('(prefers-color-scheme: light)').matches) {
+    if (
+      window.matchMedia &&
+      window.matchMedia("(prefers-color-scheme: light)").matches
+    ) {
       toggleDarkMode(false);
-    }
-    else {
+    } else {
       toggleDarkMode(true);
     }
-    window.matchMedia && window.matchMedia('(prefers-color-scheme: light)').addEventListener("change", function (e) {
-      if (options.themeMode == "auto") {
-        if (e.matches) {
-          toggleDarkMode(false);
-        }
-        else {
-          toggleDarkMode(true);
-        }
-      }
-    });
+    window.matchMedia &&
+      window
+        .matchMedia("(prefers-color-scheme: light)")
+        .addEventListener("change", function (e) {
+          if (options.themeMode == "auto") {
+            if (e.matches) {
+              toggleDarkMode(false);
+            } else {
+              toggleDarkMode(true);
+            }
+          }
+        });
   }
   if (options.themeMode == "manual") {
     darkbool = options.currentTheme == "dark" ? true : false;
@@ -626,34 +693,41 @@ function prepareBody() {
     if (e.target.tagName === "INPUT" || e.target.isContentEditable) {
       return false;
     }
-    if (!e.ctrlKey &&
-      !e.altKey &&
-      !e.metaKey &&
-      e.shiftKey) {
-      if (e.key === hotkeys.parsed_raw || e.code === "Key" + hotkeys.parsed_raw.toUpperCase()) {
+    if (!e.ctrlKey && !e.altKey && !e.metaKey && e.shiftKey) {
+      if (
+        e.key === hotkeys.parsed_raw ||
+        e.code === "Key" + hotkeys.parsed_raw.toUpperCase()
+      ) {
         e.preventDefault();
         openView("parsed_raw");
       }
     }
-    if (
-      !e.ctrlKey &&
-      !e.altKey &&
-      !e.metaKey &&
-      !e.shiftKey
-    ) {
-      if (e.key === hotkeys.toolbar || e.code === "Key" + hotkeys.toolbar.toUpperCase()) {
+    if (!e.ctrlKey && !e.altKey && !e.metaKey && !e.shiftKey) {
+      if (
+        e.key === hotkeys.toolbar ||
+        e.code === "Key" + hotkeys.toolbar.toUpperCase()
+      ) {
         e.preventDefault();
         toggleToolbar();
       }
-      if (e.key === hotkeys.dark || e.code === "Key" + hotkeys.dark.toUpperCase()) {
+      if (
+        e.key === hotkeys.dark ||
+        e.code === "Key" + hotkeys.dark.toUpperCase()
+      ) {
         e.preventDefault();
         toggleDarkMode();
       }
-      if (e.key === hotkeys.parsed || e.code === "Key" + hotkeys.parsed.toUpperCase()) {
+      if (
+        e.key === hotkeys.parsed ||
+        e.code === "Key" + hotkeys.parsed.toUpperCase()
+      ) {
         e.preventDefault();
         openView("parsed");
       }
-      if (e.key === hotkeys.raw || e.code === "Key" + hotkeys.raw.toUpperCase()) {
+      if (
+        e.key === hotkeys.raw ||
+        e.code === "Key" + hotkeys.raw.toUpperCase()
+      ) {
         e.preventDefault();
         openView("raw");
       }
@@ -662,11 +736,11 @@ function prepareBody() {
 }
 function setupFormatter(str) {
   let code;
-  if (typeof (str) == "object") {
+  if (typeof str == "object") {
     code = JSON.stringify(str);
     code = JSON.stringify(JSON.parse(formatHTML(JSON.stringify(code))));
   }
-  if (typeof (str) == "string") {
+  if (typeof str == "string") {
     code = JSON.stringify(JSON.parse(formatHTML(str)));
   }
   parsedRawCode.innerHTML = JSON.stringify(JSON.parse(code), undefined, 2);
@@ -689,16 +763,14 @@ function openView(type) {
     btn_parsed.classList.add("active");
     btn_parsed_raw.classList.remove("active");
     btn_raw.classList.remove("active");
-  }
-  else if (type == "raw") {
+  } else if (type == "raw") {
     parsedRawCode.hidden = true;
     parsedCode.hidden = true;
     rawCode.hidden = false;
     btn_parsed.classList.remove("active");
     btn_parsed_raw.classList.remove("active");
     btn_raw.classList.add("active");
-  }
-  else if (type == "parsed_raw") {
+  } else if (type == "parsed_raw") {
     rawCode.hidden = true;
     parsedCode.hidden = true;
     parsedRawCode.hidden = false;
@@ -714,33 +786,34 @@ function toggleToolbar(bool) {
       setTimeout(() => {
         toolbar.style.display = "none";
       }, 170);
-      btn_toolbar.querySelector("img").src = "data:image/svg+xml,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20height%3D%2224%22%20viewBox%3D%220%200%2024%2024%22%20width%3D%2224%22%3E%3Cpath%20d%3D%22M0%200h24v24H0V0z%22%20fill%3D%22none%22%2F%3E%3Cpath%20d%3D%22M4%2018h16c.55%200%201-.45%201-1s-.45-1-1-1H4c-.55%200-1%20.45-1%201s.45%201%201%201zm0-5h16c.55%200%201-.45%201-1s-.45-1-1-1H4c-.55%200-1%20.45-1%201s.45%201%201%201zM3%207c0%20.55.45%201%201%201h16c.55%200%201-.45%201-1s-.45-1-1-1H4c-.55%200-1%20.45-1%201z%22%2F%3E%3C%2Fsvg%3E";
+      btn_toolbar.querySelector("img").src =
+        "data:image/svg+xml,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20height%3D%2224%22%20viewBox%3D%220%200%2024%2024%22%20width%3D%2224%22%3E%3Cpath%20d%3D%22M0%200h24v24H0V0z%22%20fill%3D%22none%22%2F%3E%3Cpath%20d%3D%22M4%2018h16c.55%200%201-.45%201-1s-.45-1-1-1H4c-.55%200-1%20.45-1%201s.45%201%201%201zm0-5h16c.55%200%201-.45%201-1s-.45-1-1-1H4c-.55%200-1%20.45-1%201s.45%201%201%201zM3%207c0%20.55.45%201%201%201h16c.55%200%201-.45%201-1s-.45-1-1-1H4c-.55%200-1%20.45-1%201z%22%2F%3E%3C%2Fsvg%3E";
       isToolbarOpen = true;
-    }
-    else {
+    } else {
       toolbar.style.display = "inline-flex";
       setTimeout(() => {
         toolbar.style.opacity = "1";
       }, 30);
-      btn_toolbar.querySelector("img").src = "data:image/svg+xml,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20height%3D%2224%22%20viewBox%3D%220%200%2024%2024%22%20width%3D%2224%22%3E%3Cpath%20d%3D%22M0%200h24v24H0V0z%22%20fill%3D%22none%22%2F%3E%3Cpath%20d%3D%22M19%206.41L17.59%205%2012%2010.59%206.41%205%205%206.41%2010.59%2012%205%2017.59%206.41%2019%2012%2013.41%2017.59%2019%2019%2017.59%2013.41%2012%2019%206.41z%22%2F%3E%3C%2Fsvg%3E";
+      btn_toolbar.querySelector("img").src =
+        "data:image/svg+xml,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20height%3D%2224%22%20viewBox%3D%220%200%2024%2024%22%20width%3D%2224%22%3E%3Cpath%20d%3D%22M0%200h24v24H0V0z%22%20fill%3D%22none%22%2F%3E%3Cpath%20d%3D%22M19%206.41L17.59%205%2012%2010.59%206.41%205%205%206.41%2010.59%2012%205%2017.59%206.41%2019%2012%2013.41%2017.59%2019%2019%2017.59%2013.41%2012%2019%206.41z%22%2F%3E%3C%2Fsvg%3E";
       isToolbarOpen = false;
     }
-  }
-  else {
+  } else {
     if (isToolbarOpen) {
       toolbar.style.opacity = "0";
       setTimeout(() => {
         toolbar.style.display = "none";
       }, 170);
-      btn_toolbar.querySelector("img").src = "data:image/svg+xml,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20height%3D%2224%22%20viewBox%3D%220%200%2024%2024%22%20width%3D%2224%22%3E%3Cpath%20d%3D%22M0%200h24v24H0V0z%22%20fill%3D%22none%22%2F%3E%3Cpath%20d%3D%22M4%2018h16c.55%200%201-.45%201-1s-.45-1-1-1H4c-.55%200-1%20.45-1%201s.45%201%201%201zm0-5h16c.55%200%201-.45%201-1s-.45-1-1-1H4c-.55%200-1%20.45-1%201s.45%201%201%201zM3%207c0%20.55.45%201%201%201h16c.55%200%201-.45%201-1s-.45-1-1-1H4c-.55%200-1%20.45-1%201z%22%2F%3E%3C%2Fsvg%3E";
+      btn_toolbar.querySelector("img").src =
+        "data:image/svg+xml,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20height%3D%2224%22%20viewBox%3D%220%200%2024%2024%22%20width%3D%2224%22%3E%3Cpath%20d%3D%22M0%200h24v24H0V0z%22%20fill%3D%22none%22%2F%3E%3Cpath%20d%3D%22M4%2018h16c.55%200%201-.45%201-1s-.45-1-1-1H4c-.55%200-1%20.45-1%201s.45%201%201%201zm0-5h16c.55%200%201-.45%201-1s-.45-1-1-1H4c-.55%200-1%20.45-1%201s.45%201%201%201zM3%207c0%20.55.45%201%201%201h16c.55%200%201-.45%201-1s-.45-1-1-1H4c-.55%200-1%20.45-1%201z%22%2F%3E%3C%2Fsvg%3E";
       isToolbarOpen = false;
-    }
-    else {
+    } else {
       toolbar.style.display = "inline-flex";
       setTimeout(() => {
         toolbar.style.opacity = "1";
       }, 30);
-      btn_toolbar.querySelector("img").src = "data:image/svg+xml,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20height%3D%2224%22%20viewBox%3D%220%200%2024%2024%22%20width%3D%2224%22%3E%3Cpath%20d%3D%22M0%200h24v24H0V0z%22%20fill%3D%22none%22%2F%3E%3Cpath%20d%3D%22M19%206.41L17.59%205%2012%2010.59%206.41%205%205%206.41%2010.59%2012%205%2017.59%206.41%2019%2012%2013.41%2017.59%2019%2019%2017.59%2013.41%2012%2019%206.41z%22%2F%3E%3C%2Fsvg%3E";
+      btn_toolbar.querySelector("img").src =
+        "data:image/svg+xml,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20height%3D%2224%22%20viewBox%3D%220%200%2024%2024%22%20width%3D%2224%22%3E%3Cpath%20d%3D%22M0%200h24v24H0V0z%22%20fill%3D%22none%22%2F%3E%3Cpath%20d%3D%22M19%206.41L17.59%205%2012%2010.59%206.41%205%205%206.41%2010.59%2012%205%2017.59%206.41%2019%2012%2013.41%2017.59%2019%2019%2017.59%2013.41%2012%2019%206.41z%22%2F%3E%3C%2Fsvg%3E";
       isToolbarOpen = true;
     }
   }
@@ -753,35 +826,36 @@ function toggleSearchToolbar(bool) {
       setTimeout(() => {
         searchToolbar.style.display = "none";
       }, 170);
-      btn_search_toolbar.querySelector("img").src = "data:image/svg+xml,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20height%3D%2224%22%20viewBox%3D%220%200%2024%2024%22%20width%3D%2224%22%3E%3Cpath%20d%3D%22M0%200h24v24H0V0z%22%20fill%3D%22none%22%2F%3E%3Cpath%20d%3D%22M4%2018h16c.55%200%201-.45%201-1s-.45-1-1-1H4c-.55%200-1%20.45-1%201s.45%201%201%201zm0-5h16c.55%200%201-.45%201-1s-.45-1-1-1H4c-.55%200-1%20.45-1%201s.45%201%201%201zM3%207c0%20.55.45%201%201%201h16c.55%200%201-.45%201-1s-.45-1-1-1H4c-.55%200-1%20.45-1%201z%22%2F%3E%3C%2Fsvg%3E";
+      btn_search_toolbar.querySelector("img").src =
+        "data:image/svg+xml,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20height%3D%2224%22%20viewBox%3D%220%200%2024%2024%22%20width%3D%2224%22%3E%3Cpath%20d%3D%22M0%200h24v24H0V0z%22%20fill%3D%22none%22%2F%3E%3Cpath%20d%3D%22M4%2018h16c.55%200%201-.45%201-1s-.45-1-1-1H4c-.55%200-1%20.45-1%201s.45%201%201%201zm0-5h16c.55%200%201-.45%201-1s-.45-1-1-1H4c-.55%200-1%20.45-1%201s.45%201%201%201zM3%207c0%20.55.45%201%201%201h16c.55%200%201-.45%201-1s-.45-1-1-1H4c-.55%200-1%20.45-1%201z%22%2F%3E%3C%2Fsvg%3E";
       isSearchToolbarOpen = true;
-    }
-    else {
+    } else {
       searchToolbar.style.display = "inline-flex";
       setTimeout(() => {
         searchToolbar.style.opacity = "1";
       }, 30);
-      btn_search_toolbar.querySelector("img").src = "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 50 50' width='50px' height='50px'%3E%3Cpath d='M 21 3 C 11.654545 3 4 10.654545 4 20 C 4 29.345455 11.654545 37 21 37 C 24.701287 37 28.127393 35.786719 30.927734 33.755859 L 44.085938 46.914062 L 46.914062 44.085938 L 33.875 31.046875 C 36.43682 28.068316 38 24.210207 38 20 C 38 10.654545 30.345455 3 21 3 z M 21 5 C 29.254545 5 36 11.745455 36 20 C 36 28.254545 29.254545 35 21 35 C 12.745455 35 6 28.254545 6 20 C 6 11.745455 12.745455 5 21 5 z'/%3E%3C/svg%3E";
+      btn_search_toolbar.querySelector("img").src =
+        "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 50 50' width='50px' height='50px'%3E%3Cpath d='M 21 3 C 11.654545 3 4 10.654545 4 20 C 4 29.345455 11.654545 37 21 37 C 24.701287 37 28.127393 35.786719 30.927734 33.755859 L 44.085938 46.914062 L 46.914062 44.085938 L 33.875 31.046875 C 36.43682 28.068316 38 24.210207 38 20 C 38 10.654545 30.345455 3 21 3 z M 21 5 C 29.254545 5 36 11.745455 36 20 C 36 28.254545 29.254545 35 21 35 C 12.745455 35 6 28.254545 6 20 C 6 11.745455 12.745455 5 21 5 z'/%3E%3C/svg%3E";
       isSearchToolbarOpen = false;
       searchJSON("");
     }
-  }
-  else {
+  } else {
     if (isSearchToolbarOpen) {
       searchToolbar.style.opacity = "0";
       setTimeout(() => {
         searchToolbar.style.display = "none";
       }, 170);
-      btn_search_toolbar.querySelector("img").src = "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 50 50' width='50px' height='50px'%3E%3Cpath d='M 21 3 C 11.654545 3 4 10.654545 4 20 C 4 29.345455 11.654545 37 21 37 C 24.701287 37 28.127393 35.786719 30.927734 33.755859 L 44.085938 46.914062 L 46.914062 44.085938 L 33.875 31.046875 C 36.43682 28.068316 38 24.210207 38 20 C 38 10.654545 30.345455 3 21 3 z M 21 5 C 29.254545 5 36 11.745455 36 20 C 36 28.254545 29.254545 35 21 35 C 12.745455 35 6 28.254545 6 20 C 6 11.745455 12.745455 5 21 5 z'/%3E%3C/svg%3E";
+      btn_search_toolbar.querySelector("img").src =
+        "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 50 50' width='50px' height='50px'%3E%3Cpath d='M 21 3 C 11.654545 3 4 10.654545 4 20 C 4 29.345455 11.654545 37 21 37 C 24.701287 37 28.127393 35.786719 30.927734 33.755859 L 44.085938 46.914062 L 46.914062 44.085938 L 33.875 31.046875 C 36.43682 28.068316 38 24.210207 38 20 C 38 10.654545 30.345455 3 21 3 z M 21 5 C 29.254545 5 36 11.745455 36 20 C 36 28.254545 29.254545 35 21 35 C 12.745455 35 6 28.254545 6 20 C 6 11.745455 12.745455 5 21 5 z'/%3E%3C/svg%3E";
       isSearchToolbarOpen = false;
       searchJSON("");
-    }
-    else {
+    } else {
       searchToolbar.style.display = "inline-flex";
       setTimeout(() => {
         searchToolbar.style.opacity = "1";
       }, 30);
-      btn_search_toolbar.querySelector("img").src = "data:image/svg+xml,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20height%3D%2224%22%20viewBox%3D%220%200%2024%2024%22%20width%3D%2224%22%3E%3Cpath%20d%3D%22M0%200h24v24H0V0z%22%20fill%3D%22none%22%2F%3E%3Cpath%20d%3D%22M19%206.41L17.59%205%2012%2010.59%206.41%205%205%206.41%2010.59%2012%205%2017.59%206.41%2019%2012%2013.41%2017.59%2019%2019%2017.59%2013.41%2012%2019%206.41z%22%2F%3E%3C%2Fsvg%3E";
+      btn_search_toolbar.querySelector("img").src =
+        "data:image/svg+xml,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20height%3D%2224%22%20viewBox%3D%220%200%2024%2024%22%20width%3D%2224%22%3E%3Cpath%20d%3D%22M0%200h24v24H0V0z%22%20fill%3D%22none%22%2F%3E%3Cpath%20d%3D%22M19%206.41L17.59%205%2012%2010.59%206.41%205%205%206.41%2010.59%2012%205%2017.59%206.41%2019%2012%2013.41%2017.59%2019%2019%2017.59%2013.41%2012%2019%206.41z%22%2F%3E%3C%2Fsvg%3E";
       isSearchToolbarOpen = true;
     }
   }
@@ -792,48 +866,51 @@ function toggleDarkMode(bool) {
   if (bool != undefined) {
     if (bool == true) {
       document.body.classList.add("JB_dark", "JB_");
-      document.querySelectorAll(".JB_json-container") && document.querySelectorAll(".JB_json-container").forEach(e => {
-        e.classList.add("JB_dark");
-      });
-      document.querySelectorAll(".JB_raw") && document.querySelectorAll(".JB_raw").forEach(e => {
-        e.classList.add("JB_dark");
-      });
+      document.querySelectorAll(".JB_json-container") &&
+        document.querySelectorAll(".JB_json-container").forEach((e) => {
+          e.classList.add("JB_dark");
+        });
+      document.querySelectorAll(".JB_raw") &&
+        document.querySelectorAll(".JB_raw").forEach((e) => {
+          e.classList.add("JB_dark");
+        });
       isDark = true;
       if (!dontSave) {
         options.currentTheme = isDark ? "dark" : "light";
         chrome.storage.local.set({ [bucket]: options });
       }
-    }
-    else {
-      document.querySelectorAll(".JB_dark") && document.querySelectorAll(".JB_dark").forEach(e => {
-        e.classList.remove("JB_dark");
-      });
+    } else {
+      document.querySelectorAll(".JB_dark") &&
+        document.querySelectorAll(".JB_dark").forEach((e) => {
+          e.classList.remove("JB_dark");
+        });
       isDark = false;
       if (!dontSave) {
         options.currentTheme = isDark ? "dark" : "light";
         chrome.storage.local.set({ [bucket]: options });
       }
     }
-  }
-  else {
+  } else {
     if (isDark) {
-      document.querySelectorAll(".JB_dark") && document.querySelectorAll(".JB_dark").forEach(e => {
-        e.classList.remove("JB_dark");
-      });
+      document.querySelectorAll(".JB_dark") &&
+        document.querySelectorAll(".JB_dark").forEach((e) => {
+          e.classList.remove("JB_dark");
+        });
       isDark = false;
       if (!dontSave) {
         options.currentTheme = isDark ? "dark" : "light";
         chrome.storage.local.set({ [bucket]: options });
       }
-    }
-    else {
+    } else {
       document.body.classList.add("JB_dark", "JB_");
-      document.querySelectorAll(".JB_json-container") && document.querySelectorAll(".JB_json-container").forEach(e => {
-        e.classList.add("JB_dark");
-      });
-      document.querySelectorAll(".JB_raw") && document.querySelectorAll(".JB_raw").forEach(e => {
-        e.classList.add("JB_dark");
-      });
+      document.querySelectorAll(".JB_json-container") &&
+        document.querySelectorAll(".JB_json-container").forEach((e) => {
+          e.classList.add("JB_dark");
+        });
+      document.querySelectorAll(".JB_raw") &&
+        document.querySelectorAll(".JB_raw").forEach((e) => {
+          e.classList.add("JB_dark");
+        });
       isDark = true;
       if (!dontSave) {
         options.currentTheme = isDark ? "dark" : "light";
@@ -846,15 +923,22 @@ function toggleDarkMode(bool) {
 function linkify(inputText) {
   //URLs starting with http://, https://, or ftp://
   // deno-lint-ignore prefer-const
-  let P1 = /(\b(https?|ftp):\/\/[-A-Z0-9+&@#\/%?=~_|!:,.;]*[-A-Z0-9+&@#\/%=~_|])/gim,
+  let P1 =
+      /(\b(https?|ftp):\/\/[-A-Z0-9+&@#\/%?=~_|!:,.;]*[-A-Z0-9+&@#\/%=~_|])/gim,
     //URLs starting with "www." (without // before it, or it'd re-link the ones done above).
     // deno-lint-ignore prefer-const
     P2 = /(^|[^\/])(www\.[\S]+(\b|$))/gim,
     //Change email addresses to mailto:: links.
     // deno-lint-ignore prefer-const
     P3 = /(([a-zA-Z0-9\-\_\.])+@[a-zA-Z\_]+?(\.[a-zA-Z]{2,6})+)/gim,
-    text = inputText.replace(P1, '<a class="JB_linkify-link" href="$1" target="_blank">$1</a>');
-  text = text.replace(P2, '$1<a class="JB_linkify-link" href="http://$2" target="_blank">$2</a>');
+    text = inputText.replace(
+      P1,
+      '<a class="JB_linkify-link" href="$1" target="_blank">$1</a>'
+    );
+  text = text.replace(
+    P2,
+    '$1<a class="JB_linkify-link" href="http://$2" target="_blank">$2</a>'
+  );
   text = text.replace(P3, '<a class="JB_linkify-link" href="mailto:$1">$1</a>');
   return text;
 }

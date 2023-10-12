@@ -1,7 +1,7 @@
 
 <!-- ![JSONVoir](https://github.com/chrispeterjeyaraj/jsonvoir/blob/main/images/banners/promo.png?raw=true) -->
 
-# JSONVoir
+# JSONVOIR
 
 ### A Chrome Extension for formating and prettifying JSON automatically in the browser
 

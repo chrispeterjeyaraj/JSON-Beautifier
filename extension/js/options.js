@@ -1,4 +1,7 @@
-let defaultTabEl, themeModeEl, currentThemeEl, options = {};
+let defaultTabEl,
+  themeModeEl,
+  currentThemeEl,
+  options = {};
 const bucket = "JSON_VOIR_OPTIONS";
 globalThis.addEventListener("load", () => {
   defaultTabEl = document.getElementById("default_tab");
@@ -11,7 +14,7 @@ globalThis.addEventListener("load", () => {
       options = {
         defaultTab: "parsed",
         themeMode: "auto",
-        currentTheme: "dark"
+        currentTheme: "dark",
       };
       chrome.storage.local.set({ [bucket]: options });
     }

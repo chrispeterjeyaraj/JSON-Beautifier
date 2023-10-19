@@ -5,7 +5,7 @@
 
 ### A Chrome Extension for formating and prettifying JSON automatically in the browser
 
-### Workflows [![Deno](https://github.com/chrispeterjeyaraj/jsonvoir/actions/workflows/deno.yml/badge.svg?branch=main)](https://github.com/chrispeterjeyaraj/jsonvoir/actions/workflows/deno.yml))
+### Workflows [![ESLint](https://github.com/chrispeterjeyaraj/jsonvoir/actions/workflows/eslint.yml/badge.svg)](https://github.com/chrispeterjeyaraj/jsonvoir/actions/workflows/eslint.yml)
 
 ## Features:
 * Dark Mode

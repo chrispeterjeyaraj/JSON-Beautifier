@@ -252,9 +252,11 @@ function _() {
     if (
       typeof obj === "number" ||
       typeof obj === "boolean" ||
-      obj === null ||
+      // eslint-disable-next-line
+      typeof obj === "null" ||
       typeof obj === "undefined" ||
-      isNaN(obj)
+      // eslint-disable-next-line
+      typeof obj === "NaN"
     ) {
       pre.hidden = false;
       return false;

@@ -8,9 +8,9 @@ globalThis.addEventListener(
         "color:purple;font-weight:bold;",
         "",
         "color:rgb(26, 115, 232);font-style:italic;font-weight:bold;",
-        ""
+        "",
       );
     }
   },
-  false
+  false,
 );

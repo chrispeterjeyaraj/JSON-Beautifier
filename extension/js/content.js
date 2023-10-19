@@ -1,28 +1,28 @@
 let orgJSON,
-    btn_parsed,
-    btn_parsed_raw,
-    btn_raw,
-    btn_toolbar,
-    btn_search_toolbar,
-    toolbar,
-    searchToolbar,
-    parsedCode,
-    rawCode,
-    tree,
-    isDark = true,
-    isToolbarOpen = false,
-    isSearchToolbarOpen = false,
-    options = { defaultTab: "parsed", themeMode: "auto", currentTheme: "dark" };
+  btn_parsed,
+  btn_parsed_raw,
+  btn_raw,
+  btn_toolbar,
+  btn_search_toolbar,
+  toolbar,
+  searchToolbar,
+  parsedCode,
+  rawCode,
+  tree,
+  isDark = true,
+  isToolbarOpen = false,
+  isSearchToolbarOpen = false,
+  options = { defaultTab: "parsed", themeMode: "auto", currentTheme: "dark" };
 
 const bucket = "JSON_VOIR_OPTIONS",
-      hotkeys = {
-        toolbar: "t",
-        search: "s",
-        parsed: "p",
-        parsed_raw: "r",
-        raw: "r",
-        dark: "d",
-      };
+  hotkeys = {
+    toolbar: "t",
+    search: "s",
+    parsed: "p",
+    parsed_raw: "r",
+    raw: "r",
+    dark: "d",
+  };
 
 chrome.storage.local.get(bucket, (data) => {
   Object.assign(options, data[bucket]);
@@ -37,7 +37,7 @@ chrome.storage.local.get(bucket, (data) => {
 });
 
 chrome.storage.onChanged.addListener((changes, area) => {
-  if (area === "local" && changes[bucket]?.newValue) {
+  if (area === "local" && changes[bucket].newValue) {
     Object.assign(options, changes[bucket].newValue);
     if (options.themeMode == "manual") {
       const darkbool = options.currentTheme == "dark" ? true : false;
@@ -45,7 +45,7 @@ chrome.storage.onChanged.addListener((changes, area) => {
     }
     if (options.themeMode == "auto") {
       const darkbool = window.matchMedia(
-        "(prefers-color-scheme: dark)"
+        "(prefers-color-scheme: dark)",
       ).matches;
       toggleDarkMode(darkbool);
     }
@@ -90,20 +90,21 @@ function loadMessengerScript(formattedJSON) {
   document.head.appendChild(script);
 }
 
-
 function deepClone(source) {
   const temp = [];
   if (source) {
-    return JSON.parse(JSON.stringify(source, (_key, value) => {
-      if (typeof value === 'object' && value !== null) {
-        // deno-lint-ignore no-cond-assign
-        if (temp.indexOf(value) !== -1) {
-          return undefined;
+    return JSON.parse(
+      JSON.stringify(source, (_key, value) => {
+        if (typeof value === "object" && value !== null) {
+          // deno-lint-ignore no-cond-assign
+          if (temp.indexOf(value) !== -1) {
+            return undefined;
+          }
+          temp.push(value);
         }
-        temp.push(value);
-      }
-      return value;
-    }));
+        return value;
+      }),
+    );
   }
   return {};
 }
@@ -112,14 +113,16 @@ function deepClone(source) {
 const deepFilter = (obj, searchText) => {
   for (const key in obj) {
     const val = obj[key];
-    if (typeof val === 'object') {
+    if (typeof val === "object") {
       if (!searchText.includes(key)) {
         if (Array.isArray(val)) {
           const filteredArray = val.filter((item) => {
-            if (typeof item === 'object') {
+            if (typeof item === "object") {
               return deepFilter(item, searchText);
             } else {
-              return searchText.some((query) => item.toString().includes(query));
+              return searchText.some((query) =>
+                item.toString().includes(query),
+              );
             }
           });
           if (filteredArray.length === 0) {
@@ -132,12 +135,19 @@ const deepFilter = (obj, searchText) => {
         }
       }
     } else {
-      const filteredSearch = searchText.filter((item) => key.toString().includes(item) || obj[key].toString().includes(item));
+      const filteredSearch = searchText.filter(
+        (item) =>
+          key.toString().includes(item) || obj[key].toString().includes(item),
+      );
       if (filteredSearch.length === 0) {
         delete obj[key];
       }
     }
-    if ((Array.isArray(val) && val.length === 0) || JSON.stringify(val) === '{}' || JSON.stringify(val) === '[]') {
+    if (
+      (Array.isArray(val) && val.length === 0) ||
+      JSON.stringify(val) === "{}" ||
+      JSON.stringify(val) === "[]"
+    ) {
       delete obj[key];
     }
   }
@@ -149,17 +159,19 @@ function searchJSON(searchText) {
   if (searchText == "") {
     formatJSON(JSON.stringify(orgJSON));
   } else {
-    const searchKeys = searchText.split(',');
+    const searchKeys = searchText.split(",");
     const filterJSON = deepClone(orgJSON);
-    const result = deepFilter(filterJSON, searchKeys)
+    const result = deepFilter(filterJSON, searchKeys);
     if (Object.entries(result).length > 0) {
       formatJSON(JSON.stringify(result));
     } else {
-      formatJSON(JSON.stringify({
-        errorCode: "No Match",
-        error: "No match for the key/value entered for search",
-        searchText: searchText
-      }))
+      formatJSON(
+        JSON.stringify({
+          errorCode: "No Match",
+          error: "No match for the key/value entered for search",
+          searchText: searchText,
+        }),
+      );
     }
   }
 }
@@ -480,7 +492,7 @@ function createTree(jsonData) {
 function render(
   tree,
   targetElement,
-  option = { theme: "dark", string: false }
+  option = { theme: "dark", string: false },
 ) {
   if (option.theme != "dark" && option.theme != "light") {
     throw new TypeError("Not a valid theme name!");
@@ -520,7 +532,7 @@ function expandChildren(node) {
 function collapseChildren(node) {
   traverseTree(node, function (child) {
     child.isExpanded = false;
-    if (child.depth > node.depth) child.el.classList.add('hide');
+    if (child.depth > node.depth) child.el.classList.add("hide");
     setCaretIconRight(child);
   });
 }
@@ -795,37 +807,38 @@ function toggleSearchToolbar(bool) {
     if (bool == false) {
       searchToolbar.style.opacity = "0";
       // setTimeout(() => {
-        searchToolbar.style.display = "none";
+      searchToolbar.style.display = "none";
       // }, 170);
-      btn_search_toolbar.querySelector("img").src = "data:image/svg+xml,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20height%3D%2224%22%20viewBox%3D%220%200%2024%2024%22%20width%3D%2224%22%3E%3Cpath%20d%3D%22M0%200h24v24H0V0z%22%20fill%3D%22none%22%2F%3E%3Cpath%20d%3D%22M4%2018h16c.55%200%201-.45%201-1s-.45-1-1-1H4c-.55%200-1%20.45-1%201s.45%201%201%201zm0-5h16c.55%200%201-.45%201-1s-.45-1-1-1H4c-.55%200-1%20.45-1%201s.45%201%201%201zM3%207c0%20.55.45%201%201%201h16c.55%200%201-.45%201-1s-.45-1-1-1H4c-.55%200-1%20.45-1%201z%22%2F%3E%3C%2Fsvg%3E";
+      btn_search_toolbar.querySelector("img").src =
+        "data:image/svg+xml,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20height%3D%2224%22%20viewBox%3D%220%200%2024%2024%22%20width%3D%2224%22%3E%3Cpath%20d%3D%22M0%200h24v24H0V0z%22%20fill%3D%22none%22%2F%3E%3Cpath%20d%3D%22M4%2018h16c.55%200%201-.45%201-1s-.45-1-1-1H4c-.55%200-1%20.45-1%201s.45%201%201%201zm0-5h16c.55%200%201-.45%201-1s-.45-1-1-1H4c-.55%200-1%20.45-1%201s.45%201%201%201zM3%207c0%20.55.45%201%201%201h16c.55%200%201-.45%201-1s-.45-1-1-1H4c-.55%200-1%20.45-1%201z%22%2F%3E%3C%2Fsvg%3E";
       isSearchToolbarOpen = true;
-    }
-    else {
+    } else {
       searchToolbar.style.display = "inline-flex";
       // setTimeout(() => {
-        searchToolbar.style.opacity = "1";
+      searchToolbar.style.opacity = "1";
       // }, 30);
-      btn_search_toolbar.querySelector("img").src = "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 50 50' width='50px' height='50px'%3E%3Cpath d='M 21 3 C 11.654545 3 4 10.654545 4 20 C 4 29.345455 11.654545 37 21 37 C 24.701287 37 28.127393 35.786719 30.927734 33.755859 L 44.085938 46.914062 L 46.914062 44.085938 L 33.875 31.046875 C 36.43682 28.068316 38 24.210207 38 20 C 38 10.654545 30.345455 3 21 3 z M 21 5 C 29.254545 5 36 11.745455 36 20 C 36 28.254545 29.254545 35 21 35 C 12.745455 35 6 28.254545 6 20 C 6 11.745455 12.745455 5 21 5 z'/%3E%3C/svg%3E";
+      btn_search_toolbar.querySelector("img").src =
+        "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 50 50' width='50px' height='50px'%3E%3Cpath d='M 21 3 C 11.654545 3 4 10.654545 4 20 C 4 29.345455 11.654545 37 21 37 C 24.701287 37 28.127393 35.786719 30.927734 33.755859 L 44.085938 46.914062 L 46.914062 44.085938 L 33.875 31.046875 C 36.43682 28.068316 38 24.210207 38 20 C 38 10.654545 30.345455 3 21 3 z M 21 5 C 29.254545 5 36 11.745455 36 20 C 36 28.254545 29.254545 35 21 35 C 12.745455 35 6 28.254545 6 20 C 6 11.745455 12.745455 5 21 5 z'/%3E%3C/svg%3E";
       isSearchToolbarOpen = false;
       // searchJSON("");
     }
-  }
-  else {
+  } else {
     if (isSearchToolbarOpen) {
       searchToolbar.style.opacity = "0";
       // setTimeout(() => {
-        searchToolbar.style.display = "none";
+      searchToolbar.style.display = "none";
       // }, 170);
-      btn_search_toolbar.querySelector("img").src = "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 50 50' width='50px' height='50px'%3E%3Cpath d='M 21 3 C 11.654545 3 4 10.654545 4 20 C 4 29.345455 11.654545 37 21 37 C 24.701287 37 28.127393 35.786719 30.927734 33.755859 L 44.085938 46.914062 L 46.914062 44.085938 L 33.875 31.046875 C 36.43682 28.068316 38 24.210207 38 20 C 38 10.654545 30.345455 3 21 3 z M 21 5 C 29.254545 5 36 11.745455 36 20 C 36 28.254545 29.254545 35 21 35 C 12.745455 35 6 28.254545 6 20 C 6 11.745455 12.745455 5 21 5 z'/%3E%3C/svg%3E";
+      btn_search_toolbar.querySelector("img").src =
+        "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 50 50' width='50px' height='50px'%3E%3Cpath d='M 21 3 C 11.654545 3 4 10.654545 4 20 C 4 29.345455 11.654545 37 21 37 C 24.701287 37 28.127393 35.786719 30.927734 33.755859 L 44.085938 46.914062 L 46.914062 44.085938 L 33.875 31.046875 C 36.43682 28.068316 38 24.210207 38 20 C 38 10.654545 30.345455 3 21 3 z M 21 5 C 29.254545 5 36 11.745455 36 20 C 36 28.254545 29.254545 35 21 35 C 12.745455 35 6 28.254545 6 20 C 6 11.745455 12.745455 5 21 5 z'/%3E%3C/svg%3E";
       isSearchToolbarOpen = false;
       // searchJSON("");
-    }
-    else {
+    } else {
       searchToolbar.style.display = "inline-flex";
       // setTimeout(() => {
-        searchToolbar.style.opacity = "1";
+      searchToolbar.style.opacity = "1";
       // }, 30);
-      btn_search_toolbar.querySelector("img").src = "data:image/svg+xml,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20height%3D%2224%22%20viewBox%3D%220%200%2024%2024%22%20width%3D%2224%22%3E%3Cpath%20d%3D%22M0%200h24v24H0V0z%22%20fill%3D%22none%22%2F%3E%3Cpath%20d%3D%22M19%206.41L17.59%205%2012%2010.59%206.41%205%205%206.41%2010.59%2012%205%2017.59%206.41%2019%2012%2013.41%2017.59%2019%2019%2017.59%2013.41%2012%2019%206.41z%22%2F%3E%3C%2Fsvg%3E";
+      btn_search_toolbar.querySelector("img").src =
+        "data:image/svg+xml,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20height%3D%2224%22%20viewBox%3D%220%200%2024%2024%22%20width%3D%2224%22%3E%3Cpath%20d%3D%22M0%200h24v24H0V0z%22%20fill%3D%22none%22%2F%3E%3Cpath%20d%3D%22M19%206.41L17.59%205%2012%2010.59%206.41%205%205%206.41%2010.59%2012%205%2017.59%206.41%2019%2012%2013.41%2017.59%2019%2019%2017.59%2013.41%2012%2019%206.41z%22%2F%3E%3C%2Fsvg%3E";
       isSearchToolbarOpen = true;
     }
   }
@@ -903,11 +916,11 @@ function linkify(inputText) {
     P3 = /(([a-zA-Z0-9\-\_\.])+@[a-zA-Z\_]+?(\.[a-zA-Z]{2,6})+)/gim,
     text = inputText.replace(
       P1,
-      '<a class="JB_linkify-link" href="$1" target="_blank">$1</a>'
+      '<a class="JB_linkify-link" href="$1" target="_blank">$1</a>',
     );
   text = text.replace(
     P2,
-    '$1<a class="JB_linkify-link" href="http://$2" target="_blank">$2</a>'
+    '$1<a class="JB_linkify-link" href="http://$2" target="_blank">$2</a>',
   );
   text = text.replace(P3, '<a class="JB_linkify-link" href="mailto:$1">$1</a>');
   return text;

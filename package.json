@@ -1,0 +1,37 @@
+{
+  "name": "jsonvoir",
+  "version": "1.0.0",
+  "description": "A Chrome Extension for formating and prettifying JSON automatically in the browser",
+  "main": ".eslintrc.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/chrispeterjeyaraj/jsonvoir.git"
+  },
+  "keywords": [
+    "jsonvoir",
+    "chrome",
+    "extension",
+    "json",
+    "formatter",
+    "json",
+    "beautifier",
+    "json",
+    "utility",
+    "json",
+    "jsonp"
+  ],
+  "author": "Christopher Peterjeyaraj",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/chrispeterjeyaraj/jsonvoir/issues"
+  },
+  "homepage": "https://github.com/chrispeterjeyaraj/jsonvoir#readme",
+  "devDependencies": {
+    "eslint": "^8.51.0",
+    "eslint-config-prettier": "^9.0.0",
+    "eslint-plugin-prettier": "^5.0.1"
+  }
+}

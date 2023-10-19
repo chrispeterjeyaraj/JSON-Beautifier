@@ -1,7 +1,9 @@
+// eslint-disable-next-line
 globalThis.addEventListener(
   "message",
   function (event) {
     if (event.data.type == "real_json") {
+      // eslint-disable-next-line
       globalThis.json = event.data.msg;
       console.log(
         "%c[JSON Formatter] %cType %cjson%c to access original JSON.",

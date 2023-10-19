@@ -7,6 +7,9 @@ let orgJSON,
   toolbar,
   searchToolbar,
   parsedCode,
+  parsedRawCode,
+  input_search_text,
+  darkbool,
   rawCode,
   tree,
   isDark = true,
@@ -24,6 +27,7 @@ const bucket = "JSON_VOIR_OPTIONS",
     dark: "d",
   };
 
+// eslint-disable-next-line
 chrome.storage.local.get(bucket, (data) => {
   Object.assign(options, data[bucket]);
   if (Object.keys(options).length === 0) {
@@ -32,10 +36,12 @@ chrome.storage.local.get(bucket, (data) => {
       themeMode: "auto",
       currentTheme: "dark",
     };
+    // eslint-disable-next-line
     chrome.storage.local.set({ [bucket]: options });
   }
 });
 
+// eslint-disable-next-line
 chrome.storage.onChanged.addListener((changes, area) => {
   if (area === "local" && changes[bucket].newValue) {
     Object.assign(options, changes[bucket].newValue);
@@ -80,6 +86,7 @@ function formatJSON(str) {
  */
 function loadMessengerScript(formattedJSON) {
   const script = document.createElement("script");
+  // eslint-disable-next-line
   script.src = chrome.runtime.getURL("js/messenger.js");
   script.onload = () => {
     postMessage({ type: "real_json", msg: JSON.parse(formattedJSON[1]) });
@@ -202,7 +209,7 @@ function _() {
   }
   const pre = document.body.childNodes[0];
   pre.hidden = true;
-  codeTimeout = setTimeout(function () {
+  var codeTimeout = setTimeout(function () {
     pre.hidden = false;
   }, 1000);
   if (pre.tagName === "PRE" && pre.nodeName === "PRE" && pre.nodeType === 1) {
@@ -245,9 +252,9 @@ function _() {
     if (
       typeof obj === "number" ||
       typeof obj === "boolean" ||
-      typeof obj === "null" ||
+      obj === null ||
       typeof obj === "undefined" ||
-      typeof obj === "NaN"
+      isNaN(obj)
     ) {
       pre.hidden = false;
       return false;
@@ -272,7 +279,7 @@ function _() {
     formatJSON(JSON.stringify(orgJSON));
   }
 }
-
+// eslint-disable-next-line
 globalThis.addEventListener("load", _);
 
 function expandedTemplate(params = {}) {
@@ -432,11 +439,11 @@ function traverseTree(node, callback) {
  * @return {object}
  */
 function createNode(opt = {}) {
+  var isOptOwnProp = Object.prototype.hasOwnProperty.call(opt, "value");
   return {
     key: opt.key || null,
     parent: opt.parent || null,
-    // deno-lint-ignore no-prototype-builtins
-    value: opt.hasOwnProperty("value") ? opt.value : null,
+    value: isOptOwnProp ? opt.value : null,
     isExpanded: opt.isExpanded || false,
     type: opt.type || null,
     children: opt.children || [],
@@ -529,13 +536,13 @@ function expandChildren(node) {
   });
 }
 
-function collapseChildren(node) {
-  traverseTree(node, function (child) {
-    child.isExpanded = false;
-    if (child.depth > node.depth) child.el.classList.add("hide");
-    setCaretIconRight(child);
-  });
-}
+// function collapseChildren(node) {
+//   traverseTree(node, function (child) {
+//     child.isExpanded = false;
+//     if (child.depth > node.depth) child.el.classList.add("hide");
+//     setCaretIconRight(child);
+//   });
+// }
 
 /**
  * HTML Formatter
@@ -672,6 +679,7 @@ function prepareBody() {
     darkbool = options.currentTheme == "dark" ? true : false;
     toggleDarkMode(darkbool);
   }
+  // eslint-disable-next-line
   globalThis.addEventListener("keydown", (e) => {
     if (e.target.tagName === "INPUT" || e.target.isContentEditable) {
       return false;
@@ -845,7 +853,7 @@ function toggleSearchToolbar(bool) {
 }
 
 function toggleDarkMode(bool) {
-  dontSave = options.themeMode == "auto" ? true : false;
+  const dontSave = options.themeMode == "auto" ? true : false;
   if (bool != undefined) {
     if (bool == true) {
       document.body.classList.add("JB_dark", "JB_");
@@ -860,6 +868,7 @@ function toggleDarkMode(bool) {
       isDark = true;
       if (!dontSave) {
         options.currentTheme = isDark ? "dark" : "light";
+        // eslint-disable-next-line
         chrome.storage.local.set({ [bucket]: options });
       }
     } else {
@@ -870,6 +879,7 @@ function toggleDarkMode(bool) {
       isDark = false;
       if (!dontSave) {
         options.currentTheme = isDark ? "dark" : "light";
+        // eslint-disable-next-line
         chrome.storage.local.set({ [bucket]: options });
       }
     }
@@ -882,6 +892,7 @@ function toggleDarkMode(bool) {
       isDark = false;
       if (!dontSave) {
         options.currentTheme = isDark ? "dark" : "light";
+        // eslint-disable-next-line
         chrome.storage.local.set({ [bucket]: options });
       }
     } else {
@@ -897,6 +908,7 @@ function toggleDarkMode(bool) {
       isDark = true;
       if (!dontSave) {
         options.currentTheme = isDark ? "dark" : "light";
+        // eslint-disable-next-line
         chrome.storage.local.set({ [bucket]: options });
       }
     }
@@ -904,16 +916,13 @@ function toggleDarkMode(bool) {
 }
 
 function linkify(inputText) {
-  //URLs starting with http://, https://, or ftp://
-  // deno-lint-ignore prefer-const
+  // URLs starting with http://, https://, or ftp://
   let P1 =
-      /(\b(https?|ftp):\/\/[-A-Z0-9+&@#\/%?=~_|!:,.;]*[-A-Z0-9+&@#\/%=~_|])/gim,
-    //URLs starting with "www." (without // before it, or it'd re-link the ones done above).
-    // deno-lint-ignore prefer-const
-    P2 = /(^|[^\/])(www\.[\S]+(\b|$))/gim,
-    //Change email addresses to mailto:: links.
-    // deno-lint-ignore prefer-const
-    P3 = /(([a-zA-Z0-9\-\_\.])+@[a-zA-Z\_]+?(\.[a-zA-Z]{2,6})+)/gim,
+      /(\b(https?|ftp):\/\/[-A-Z0-9+&@#/%?=~_|!:,.;]*[-A-Z0-9+&@#/%=~_|])/gim,
+    // URLs starting with "www." (without // before it, or it'd re-link the ones done above).
+    P2 = /(^|[^/])(www\.[\S]+(\b|$))/gim,
+    // Change email addresses to mailto:: links.
+    P3 = /(([a-zA-Z0-9-_.])+@[a-zA-Z_]+?(\.[a-zA-Z]{2,6})+)/gim,
     text = inputText.replace(
       P1,
       '<a class="JB_linkify-link" href="$1" target="_blank">$1</a>',

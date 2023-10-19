@@ -1,6 +1,6 @@
 .JB_json-container {
   font-family: Consolas, Monaco, "Andale Mono", "Ubuntu Mono", monospace;
-  font-size: 13px;
+  font-size: 14px;
   background-color: #fff;
   color: #808080;
   box-sizing: border-box;
@@ -87,13 +87,13 @@
 }
 
 body.JB_.JB_dark {
-  background-color: #1e1e1e;
+  background-color: #1e1e1ed3;
 }
 
 .JB_json-container.JB_dark {
   font-family: Consolas, Monaco, "Andale Mono", "Ubuntu Mono", monospace;
-  background-color: #1e1e1e;
-  color: #d4d4d4;
+  background-color: #1e1e1ed3;
+  color: #d1d1d1;
   box-sizing: border-box;
 }
 
@@ -122,7 +122,7 @@ body.JB_.JB_dark {
 }
 
 .JB_json-container.JB_dark .json-key {
-  color: #9cdcfe;
+  color: #4cd1e2;
   margin-right: 4px;
   margin-left: 4px;
 }
@@ -145,7 +145,7 @@ body.JB_.JB_dark {
 }
 
 .JB_json-container.JB_dark .json-string {
-  color: #ce9178;
+  color: #f5b49b;
 }
 
 .JB_json-container.JB_dark .json-size {

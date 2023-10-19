@@ -91,107 +91,75 @@ function loadMessengerScript(formattedJSON) {
 }
 
 
-/**
- * Deep clones an object or array.
- *
- * @param {any} source - The object or array to be cloned.
- * @return {any} - The cloned object or array.
- */
 function deepClone(source) {
-  const cloned = new WeakMap();
-
-  function clone(obj) {
-    if (typeof obj !== 'object' || obj === null) {
-      return obj; // Return primitive types and null as is
-    }
-
-    if (cloned.has(obj)) {
-      return cloned.get(obj); // Return the existing clone for circular references
-    }
-
-    if (Array.isArray(obj)) {
-      const arrClone = [];
-      cloned.set(obj, arrClone);
-      obj.forEach((item, index) => {
-        arrClone[index] = clone(item);
-      });
-      return arrClone;
-    }
-
-    if (typeof obj === 'object') {
-      const objClone = {};
-      cloned.set(obj, objClone);
-      for (const key in obj) {
-        if (obj.hasOwnProperty(key)) {
-          objClone[key] = clone(obj[key]);
+  const temp = [];
+  if (source) {
+    return JSON.parse(JSON.stringify(source, (_key, value) => {
+      if (typeof value === 'object' && value !== null) {
+        // deno-lint-ignore no-cond-assign
+        if (temp.indexOf(value) !== -1) {
+          return undefined;
         }
+        temp.push(value);
       }
-      return objClone;
-    }
+      return value;
+    }));
   }
-
-  return clone(source);
+  return {};
 }
 
-/**
- * Filters a nested object or array by removing keys or elements that do not match the search text.
- *
- * @param {Object|Array} obj - The object or array to filter.
- * @param {string[]} searchText - An array of search text to match against keys or values.
- * @return {Object|Array} - The filtered object or array.
- */
+// Recursive deepFilter function to filter based on search keys
 const deepFilter = (obj, searchText) => {
-  if (Array.isArray(obj)) {
-    for (let i = obj.length - 1; i >= 0; i--) {
-      deepFilter(obj[i], searchText);
-      if (typeof obj[i] === "object" && Object.keys(obj[i]).length === 0) {
-        obj.splice(i, 1);
+  for (const key in obj) {
+    const val = obj[key];
+    if (typeof val === 'object') {
+      if (!searchText.includes(key)) {
+        if (Array.isArray(val)) {
+          const filteredArray = val.filter((item) => {
+            if (typeof item === 'object') {
+              return deepFilter(item, searchText);
+            } else {
+              return searchText.some((query) => item.toString().includes(query));
+            }
+          });
+          if (filteredArray.length === 0) {
+            delete obj[key];
+          } else {
+            obj[key] = filteredArray;
+          }
+        } else {
+          deepFilter(val, searchText);
+        }
+      }
+    } else {
+      const filteredSearch = searchText.filter((item) => key.toString().includes(item) || obj[key].toString().includes(item));
+      if (filteredSearch.length === 0) {
+        delete obj[key];
       }
     }
-  } else if (typeof obj === "object") {
-    for (const key in obj) {
-      const val = obj[key];
-      if (typeof val === "object") {
-        deepFilter(val, searchText);
-        if (Object.keys(val).length === 0) {
-          delete obj[key];
-        }
-      } else {
-        // Check if the key or its value includes the searchText
-        const keyMatches = searchText.some(item => key.includes(item));
-        const valueMatches = searchText.some(item => val.toString().includes(item));
-        if (!keyMatches && !valueMatches) {
-          delete obj[key];
-        }
-      }
+    if ((Array.isArray(val) && val.length === 0) || JSON.stringify(val) === '{}' || JSON.stringify(val) === '[]') {
+      delete obj[key];
     }
   }
   return obj;
 };
 
-/**
- * Searches for a specific text in a JSON object and returns the filtered result.
- *
- * @param {string} searchText - The text to search for in the JSON object.
- * @return {undefined} This function does not return any value.
- */
+// Search through the JSON recursively to find out matched items
 function searchJSON(searchText) {
   if (searchText == "") {
     formatJSON(JSON.stringify(orgJSON));
   } else {
-    const searchKeys = searchText.split(",");
+    const searchKeys = searchText.split(',');
     const filterJSON = deepClone(orgJSON);
-    const result = deepFilter(filterJSON, searchKeys);
+    const result = deepFilter(filterJSON, searchKeys)
     if (Object.entries(result).length > 0) {
       formatJSON(JSON.stringify(result));
     } else {
-      formatJSON(
-        JSON.stringify({
-          errorCode: "No Match",
-          error: "No match for the key/value entered for search",
-          searchText: searchText,
-        })
-      );
+      formatJSON(JSON.stringify({
+        errorCode: "No Match",
+        error: "No match for the key/value entered for search",
+        searchText: searchText
+      }))
     }
   }
 }
@@ -652,7 +620,10 @@ function prepareBody() {
   btn_search_toolbar.addEventListener("click", function () {
     toggleSearchToolbar();
     input_search_text.focus();
-    input_search_text.value = "";
+    // input_search_text.value = "";
+    // setTimeout(() => {
+    //   searchJSON("");
+    // }, 30);
   });
   input_search_text.addEventListener("keydown", function (evt) {
     if (evt.key === "Enter") {
@@ -823,39 +794,38 @@ function toggleSearchToolbar(bool) {
   if (bool != undefined) {
     if (bool == false) {
       searchToolbar.style.opacity = "0";
-      setTimeout(() => {
+      // setTimeout(() => {
         searchToolbar.style.display = "none";
-      }, 170);
-      btn_search_toolbar.querySelector("img").src =
-        "data:image/svg+xml,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20height%3D%2224%22%20viewBox%3D%220%200%2024%2024%22%20width%3D%2224%22%3E%3Cpath%20d%3D%22M0%200h24v24H0V0z%22%20fill%3D%22none%22%2F%3E%3Cpath%20d%3D%22M4%2018h16c.55%200%201-.45%201-1s-.45-1-1-1H4c-.55%200-1%20.45-1%201s.45%201%201%201zm0-5h16c.55%200%201-.45%201-1s-.45-1-1-1H4c-.55%200-1%20.45-1%201s.45%201%201%201zM3%207c0%20.55.45%201%201%201h16c.55%200%201-.45%201-1s-.45-1-1-1H4c-.55%200-1%20.45-1%201z%22%2F%3E%3C%2Fsvg%3E";
+      // }, 170);
+      btn_search_toolbar.querySelector("img").src = "data:image/svg+xml,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20height%3D%2224%22%20viewBox%3D%220%200%2024%2024%22%20width%3D%2224%22%3E%3Cpath%20d%3D%22M0%200h24v24H0V0z%22%20fill%3D%22none%22%2F%3E%3Cpath%20d%3D%22M4%2018h16c.55%200%201-.45%201-1s-.45-1-1-1H4c-.55%200-1%20.45-1%201s.45%201%201%201zm0-5h16c.55%200%201-.45%201-1s-.45-1-1-1H4c-.55%200-1%20.45-1%201s.45%201%201%201zM3%207c0%20.55.45%201%201%201h16c.55%200%201-.45%201-1s-.45-1-1-1H4c-.55%200-1%20.45-1%201z%22%2F%3E%3C%2Fsvg%3E";
       isSearchToolbarOpen = true;
-    } else {
-      searchToolbar.style.display = "inline-flex";
-      setTimeout(() => {
-        searchToolbar.style.opacity = "1";
-      }, 30);
-      btn_search_toolbar.querySelector("img").src =
-        "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 50 50' width='50px' height='50px'%3E%3Cpath d='M 21 3 C 11.654545 3 4 10.654545 4 20 C 4 29.345455 11.654545 37 21 37 C 24.701287 37 28.127393 35.786719 30.927734 33.755859 L 44.085938 46.914062 L 46.914062 44.085938 L 33.875 31.046875 C 36.43682 28.068316 38 24.210207 38 20 C 38 10.654545 30.345455 3 21 3 z M 21 5 C 29.254545 5 36 11.745455 36 20 C 36 28.254545 29.254545 35 21 35 C 12.745455 35 6 28.254545 6 20 C 6 11.745455 12.745455 5 21 5 z'/%3E%3C/svg%3E";
-      isSearchToolbarOpen = false;
-      searchJSON("");
     }
-  } else {
+    else {
+      searchToolbar.style.display = "inline-flex";
+      // setTimeout(() => {
+        searchToolbar.style.opacity = "1";
+      // }, 30);
+      btn_search_toolbar.querySelector("img").src = "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 50 50' width='50px' height='50px'%3E%3Cpath d='M 21 3 C 11.654545 3 4 10.654545 4 20 C 4 29.345455 11.654545 37 21 37 C 24.701287 37 28.127393 35.786719 30.927734 33.755859 L 44.085938 46.914062 L 46.914062 44.085938 L 33.875 31.046875 C 36.43682 28.068316 38 24.210207 38 20 C 38 10.654545 30.345455 3 21 3 z M 21 5 C 29.254545 5 36 11.745455 36 20 C 36 28.254545 29.254545 35 21 35 C 12.745455 35 6 28.254545 6 20 C 6 11.745455 12.745455 5 21 5 z'/%3E%3C/svg%3E";
+      isSearchToolbarOpen = false;
+      // searchJSON("");
+    }
+  }
+  else {
     if (isSearchToolbarOpen) {
       searchToolbar.style.opacity = "0";
-      setTimeout(() => {
+      // setTimeout(() => {
         searchToolbar.style.display = "none";
-      }, 170);
-      btn_search_toolbar.querySelector("img").src =
-        "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 50 50' width='50px' height='50px'%3E%3Cpath d='M 21 3 C 11.654545 3 4 10.654545 4 20 C 4 29.345455 11.654545 37 21 37 C 24.701287 37 28.127393 35.786719 30.927734 33.755859 L 44.085938 46.914062 L 46.914062 44.085938 L 33.875 31.046875 C 36.43682 28.068316 38 24.210207 38 20 C 38 10.654545 30.345455 3 21 3 z M 21 5 C 29.254545 5 36 11.745455 36 20 C 36 28.254545 29.254545 35 21 35 C 12.745455 35 6 28.254545 6 20 C 6 11.745455 12.745455 5 21 5 z'/%3E%3C/svg%3E";
+      // }, 170);
+      btn_search_toolbar.querySelector("img").src = "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 50 50' width='50px' height='50px'%3E%3Cpath d='M 21 3 C 11.654545 3 4 10.654545 4 20 C 4 29.345455 11.654545 37 21 37 C 24.701287 37 28.127393 35.786719 30.927734 33.755859 L 44.085938 46.914062 L 46.914062 44.085938 L 33.875 31.046875 C 36.43682 28.068316 38 24.210207 38 20 C 38 10.654545 30.345455 3 21 3 z M 21 5 C 29.254545 5 36 11.745455 36 20 C 36 28.254545 29.254545 35 21 35 C 12.745455 35 6 28.254545 6 20 C 6 11.745455 12.745455 5 21 5 z'/%3E%3C/svg%3E";
       isSearchToolbarOpen = false;
-      searchJSON("");
-    } else {
+      // searchJSON("");
+    }
+    else {
       searchToolbar.style.display = "inline-flex";
-      setTimeout(() => {
+      // setTimeout(() => {
         searchToolbar.style.opacity = "1";
-      }, 30);
-      btn_search_toolbar.querySelector("img").src =
-        "data:image/svg+xml,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20height%3D%2224%22%20viewBox%3D%220%200%2024%2024%22%20width%3D%2224%22%3E%3Cpath%20d%3D%22M0%200h24v24H0V0z%22%20fill%3D%22none%22%2F%3E%3Cpath%20d%3D%22M19%206.41L17.59%205%2012%2010.59%206.41%205%205%206.41%2010.59%2012%205%2017.59%206.41%2019%2012%2013.41%2017.59%2019%2019%2017.59%2013.41%2012%2019%206.41z%22%2F%3E%3C%2Fsvg%3E";
+      // }, 30);
+      btn_search_toolbar.querySelector("img").src = "data:image/svg+xml,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20height%3D%2224%22%20viewBox%3D%220%200%2024%2024%22%20width%3D%2224%22%3E%3Cpath%20d%3D%22M0%200h24v24H0V0z%22%20fill%3D%22none%22%2F%3E%3Cpath%20d%3D%22M19%206.41L17.59%205%2012%2010.59%206.41%205%205%206.41%2010.59%2012%205%2017.59%206.41%2019%2012%2013.41%2017.59%2019%2019%2017.59%2013.41%2012%2019%206.41z%22%2F%3E%3C%2Fsvg%3E";
       isSearchToolbarOpen = true;
     }
   }
